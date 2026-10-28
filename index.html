@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh‑CN">
+<head>
+<meta charset="UTF‑8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>外卖之富｜粉丝积分站</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#141418;color:#f5f5f5;font-family:system-ui,-apple-system,Segoe UI;padding:16px;max-width:720px;margin:0 auto;}
+h1{text-align:center;color:#ffaa2b;margin-bottom:24px;font-size:22px;}
+.card{background:#1f1f27;border-radius:12px;padding:18px;margin-bottom:16px;border:1px solid #333;}
+.card h2{font-size:17px;margin-bottom:12px;color:#ffbc49;}
+input{width:100%;padding:10px 12px;border-radius:6px;border:none;background:#2c2c38;color:#fff;margin-bottom:10px;font-size:15px;}
+button{padding:10px 14px;border:none;border-radius:6px;background:#ff8822;color:#000;font-weight:bold;font-size:15px;cursor:pointer;margin-right:8px;margin-bottom:8px;}
+button.sec{background:#3a3a48;color:#fff;}
+.btn-block{display:block;width:100%;text-align:center;text-decoration:none;padding:12px;border-radius:8px;margin:8px 0;font-weight:bold;font-size:16px;}
+.watch-drama{background-color:#ff7720;color:#000;}
+.fill-form{background-color:#2994ff;color:#fff;}
+.rank-item{padding:8px 0;border-bottom:1px solid #333;display:flex;justify-content:space-between;}
+.log-item{font-size:13px;color:#ccc;padding:4px 0;}
+.tip{font-size:13px;color:#aaa;margin:8px 0;}
+#msg{padding:10px;border-radius:6px;margin:10px 0;display:none;}
+.msg-ok{background:#1b4b2c;color:#8cf1a6;}
+.msg-err{background:#521e26;color:#ffadb8;}
+</style>
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<h1>📺《外卖之富》粉丝积分站</h1>
+
+<!-- ===== 短剧 & 问卷入口 ===== -->
+<div class="card">
+  <h2>🎬 快速入口</h2>
+  <a class="btn-block watch-drama" href="https://4001418454.share.123pan.cn/123pan/JSWZMh-UY9W3" target="_blank">
+    👉 短剧观看入口（123云盘）
+  </a>
+  <a class="btn-block fill-form" href="https://yfdexmbo.jsjform.com/f/ytLqvX" target="_blank">
+    📝 第二集反馈问卷（填写获取积分）
+  </a>
+  <div class="tip">填写问卷后，请回到本页面登记昵称，领取对应积分奖励。</div>
+</div>
+
+<div id="msg"></div>
+
+<div class="card">
+  <h2>✨ 入场：设置你的专属昵称（不可重复）</h2>
+  <input id="nickInput" placeholder="输入你的粉丝昵称" maxlength="20"/>
+  <button onclick="registerNick()">确认入场</button>
+  <div class="tip">昵称全局唯一，重复会提示报错；入场后开启积分记录。</div>
+</div>
+
+<div class="card">
+  <h2>👤 我的账户</h2>
+  <div id="myInfo">尚未登录，请先设置昵称入场</div>
+  <div style="margin-top:10px">
+    <button class="sec" onclick="refreshMyPoint()">刷新我的积分</button>
+  </div>
+  <div id="myLog"></div>
+</div>
+
+<div class="card">
+  <h2>🎁 权益兑换（消耗积分）</h2>
+  <div class="tip">①催更权益：100积分，催促剧集更新；②剧情预测权益：30积分，可预测下一集走向，猜对+20积分。</div>
+  <button onclick="exchange('urge')">兑换催更权益(-100)</button>
+  <button onclick="exchange('predict')">兑换剧情预测权益(-30)</button>
+</div>
+
+<div class="card">
+  <h2>🏆 积分排行榜</h2>
+  <div id="leaderboard"></div>
+  <button class="sec" onclick="loadRank()">刷新榜单</button>
+</div>
+
+<script>
+// ============【这里改成你的信息！！】============
+const SUPABASE_URL = "https://famruqybqslcslkckpyk.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_iie6HBAS9jm48lD7zZ3Zug_CgXYXVLf";
+// ==============================================
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentUserId=null;
+let currentNick=null;
+
+function showMsg(text,isOk){
+  const el=document.getElementById("msg");
+  el.style.display="block";
+  el.className=isOk?"msg-ok":"msg-err";
+  el.innerText=text;
+  setTimeout(()=>el.style.display="none",4000);
+}
+
+// 注册昵称，查重
+async function registerNick(){
+  const nick=document.getElementById("nickInput").value.trim();
+  if(!nick){showMsg("昵称不能为空",false);return;}
+  // 查询昵称是否已存在
+  const {data:exist}=await supabase.from("users").select("id").eq("nickname",nick).single();
+  if(exist){
+    showMsg("该昵称已经被占用，请换一个昵称！",false);
+    return;
+  }
+  // 创建用户记录
+  const {data,error}=await supabase.from("users").insert({nickname:nick,points:0}).select().single();
+  if(error){showMsg("创建失败："+error.message,false);return;}
+  currentUserId=data.id;
+  currentNick=data.nickname;
+  showMsg(`欢迎「${nick}」，入场成功！`,true);
+  renderMyInfo();
+  loadRank();
+}
+
+async function renderMyInfo(){
+  if(!currentUserId){
+    document.getElementById("myInfo").innerText="尚未登录，请先设置昵称入场";
+    document.getElementById("myLog").innerHTML="";
+    return;
+  }
+  const {data:u}=await supabase.from("users").select("nickname,points").eq("id",currentUserId).single();
+  document.getElementById("myInfo").innerText=`昵称：${u.nickname}｜当前积分：${u.points}`;
+  // 查询个人积分流水
+  const {data:logs}=await supabase.from("activities").select("type,points,note,created_at").eq("user_id",currentUserId).order("created_at",{ascending:false}).limit(12);
+  let html="<h4 style='margin-top:10px'>最近积分明细</h4>";
+  if(!logs||logs.length===0) html+="<div class='log-item'>暂无记录</div>";
+  else logs.forEach(l=>{
+    html+=`<div class="log-item">${l.created_at.slice(0,10)}｜${l.type} ${l.points>0?"+":""}${l.points}｜${l.note||""}</div>`;
+  });
+  document.getElementById("myLog").innerHTML=html;
+}
+
+async function refreshMyPoint(){ await renderMyInfo(); }
+
+// 兑换权益
+async function exchange(type){
+  if(!currentUserId){showMsg("请先设置昵称入场",false);return;}
+  let cost,title,note;
+  if(type==="urge"){cost=100;title="兑换催更权益";note="消耗积分兑换催更";}
+  else if(type==="predict"){cost=30;title="兑换剧情预测权益";note="消耗积分兑换剧情预测";}
+  else return;
+
+  const {data:user}=await supabase.from("users").select("points").eq("id",currentUserId).single();
+  if(user.points < cost){
+    showMsg(`积分不足，需要${cost}积分，当前：${user.points}`,false);
+    return;
+  }
+  //扣积分
+  await supabase.from("users").update({points:user.points-cost}).eq("id",currentUserId);
+  await supabase.from("activities").insert({user_id:currentUserId,type:title,points:-cost,note:note});
+  showMsg(`成功：${title}`,true);
+  renderMyInfo();
+  loadRank();
+}
+
+//加载排行榜
+async function loadRank(){
+  const {data:list}=await supabase.from("users").select("nickname,points").order("points",{ascending:false}).limit(50);
+  let html="";
+  if(!list||list.length===0){html="<div class='rank-item'>暂无数据</div>";}
+  else list.forEach((item,idx)=>{
+    html+=`<div class="rank-item"><span>${idx+1}. ${item.nickname}</span><span>${item.points}积分</span></div>`;
+  });
+  document.getElementById("leaderboard").innerHTML=html;
+}
+
+window.onload=()=>{
+  loadRank();
+}
+</script>
+</body>
+</html>
