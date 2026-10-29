@@ -3,8 +3,6 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<!-- 新增：关闭referrer，绕过易云盘防盗链 -->
-<meta name="referrer" content="no-referrer">
 <title>短剧粉丝站</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>¥</text></svg>" />
 <style>
@@ -40,7 +38,6 @@ h1{
   margin-bottom:14px;
   border:1px solid #2e2e3a;
 }
-/* ==========红果风格：短剧首页卡片========== */
 .drama-home-card{
   background:#1f1f27;
   border-radius:12px;
@@ -69,7 +66,6 @@ h1{
   color:#aaa;
   line-height:1.5;
 }
-/* ==========剧集详情页样式========== */
 #dramaDetailPage{
   display:none;
 }
@@ -122,36 +118,6 @@ h1{
   text-align:center;
   padding:6px 4px;
   font-size:13px;
-}
-/* ==========视频弹窗========== */
-.video-modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.9);
-  z-index:999;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  padding:12px;
-}
-.video-inner{
-  width:100%;
-  max-width:620px;
-}
-.video-inner video{
-  width:100%;
-  border-radius:12px;
-  background:#000;
-}
-.close-modal{
-  margin-bottom:10px;
-  background:#ff4444;
-  color:white;
-  width:100%;
-  border:none;
-  padding:12px;
-  border-radius:8px;
-  cursor:pointer;
 }
 input{
   width:100%;
@@ -219,32 +185,20 @@ button.sec{background:#3a3a48;color:#fff;}
 </head>
 <body>
 <h1>短剧粉丝站</h1>
-<!-- 视频弹窗 -->
-<div class="video-modal" id="videoModal">
-  <div class="video-inner">
-    <button class="close-modal" onclick="closeVideoModal()">✖ 关闭播放器</button>
-    <video id="playVideo" controls preload="metadata">
-      <source src="" type="video/mp4">
-      浏览器不支持播放
-    </video>
-  </div>
-</div>
-<!-- =========首页：全部短剧列表========= -->
 <div id="homePage">
   <div class="section-title">全部短剧</div>
   <div id="dramaHomeList"></div>
 </div>
-<!-- =========短剧详情页：单部剧+集数列表========= -->
 <div id="dramaDetailPage">
   <button class="back-btn" onclick="backHome()">← 返回首页</button>
   <img id="detailCover" class="detail-top-cover" src="" alt="">
   <div id="detailName" class="detail-name"></div>
   <div id="detailDesc" class="detail-desc"></div>
   <div class="tip">反馈问卷：<a id="detailFeedbackLink" target="_blank" style="color:#42a5ff;">点击打开</a></div>
-  <div class="section-title">全部集数</div>
+  <div class="section-title">全部集数（点击集数，新标签页播放视频）</div>
   <div id="epGrid" class="ep-grid"></div>
 </div>
-<!-- =========积分系统 完全保留========= -->
+
 <div class="section-title">积分中心</div>
 <div id="msg"></div>
 <div class="card">
@@ -278,7 +232,7 @@ button.sec{background:#3a3a48;color:#fff;}
   <div id="rankBox"><div class="empty">加载中...</div></div>
   <button class="sec" onclick="loadRank()">刷新榜单</button>
 </div>
-<!-- ========== 管理员后台（隐藏） ========== -->
+
 <div id="adminSection" style="display:none;">
   <div class="card" style="border:2px solid #ff4444;">
     <h2 style="font-size:16px;margin-bottom:12px;color:#ff6666;font-weight:600;">管理员后台</h2>
@@ -309,45 +263,33 @@ button.sec{background:#3a3a48;color:#fff;}
 <div style="text-align:center;margin-top:20px;padding:10px;">
   <a href="javascript:void(0)" onclick="showAdminLogin()" style="font-size:12px;color:#555;text-decoration:none;">管理员入口</a>
 </div>
+
 <script>
-//====================【视频配置：把videoSrc替换成你的易云盘MP4直链】====================
 const DRAMA_LIST = [
   {
     dramaId: "drama01",
     name: "外卖之富",
     desc: "外卖小哥意外获得暴富系统，从此走上人生巅峰",
-    dramaCover: "https://huggingface.co/datasets/你的用户名/数据集名/resolve/main/cover_drama01.jpg",
+    dramaCover: "https://id5uuto33o40lc.1yunpan.com/%E5%A4%96%E5%8D%96%E4%B9%8B%E5%AF%8C/%E5%B0%81%E9%9D%A2/%E5%A4%96%E5%8D%96%E4%B9%8B%E5%AF%8C.png",
     feedbackUrl: "https://yfdexmbo.jsjform.com/f/ytLqvX",
     episodeList: [
       {
         epNum:1,
         epTitle:"第1集",
-        epCover:"https://huggingface.co/datasets/你的用户名/数据集名/resolve/main/cover_ep1.jpg",
-        // 👉这里替换为易云盘mp4直链
-        videoSrc:"https://id5uuto33o40lc.1yunpan.com/你的视频文件名.mp4"
+        epCover:"https://id5uuto33o40lc.1yunpan.com/%E5%A4%96%E5%8D%96%E4%B9%8B%E5%AF%8C/%E5%B0%81%E9%9D%A2/%E5%A4%96%E5%8D%96%E4%B9%8B%E5%AF%8C-%E7%AC%AC%E4%B8%80%E9%9B%86.png",
+        videoSrc:"https://4001418454.share.123pan.cn/123pan/JSWZMh-GFns3"
       }
-      //继续复制增加更多集数
     ]
   }
 ];
-//=========================================================================
+
 let currentDrama = null;
-//打开视频弹窗
+
+//点击集数，新开标签打开网盘分享页
 function openVideoModal(src){
-  const modal = document.getElementById('videoModal');
-  const videoDom = document.getElementById('playVideo');
-  videoDom.src = src;
-  modal.style.display = 'flex';
+  window.open(src,"_blank");
 }
-//关闭弹窗
-function closeVideoModal(){
-  const modal = document.getElementById('videoModal');
-  const videoDom = document.getElementById('playVideo');
-  videoDom.pause();
-  videoDom.src = "";
-  modal.style.display = 'none';
-}
-//渲染首页全部短剧卡片
+
 function renderHomeDrama(){
   const box = document.getElementById("dramaHomeList");
   let html = "";
@@ -362,18 +304,16 @@ function renderHomeDrama(){
   });
   box.innerHTML = html;
 }
-//打开某部剧详情页
+
 function openDramaDetail(dramaId){
   currentDrama = DRAMA_LIST.find(d=>d.dramaId === dramaId);
   if(!currentDrama) return;
-  //切换页面显示
   document.getElementById("homePage").style.display = "none";
   document.getElementById("dramaDetailPage").style.display = "block";
   document.getElementById("detailCover").src = currentDrama.dramaCover;
   document.getElementById("detailName").innerText = currentDrama.name;
   document.getElementById("detailDesc").innerText = currentDrama.desc;
   document.getElementById("detailFeedbackLink").href = currentDrama.feedbackUrl;
-  //渲染集数网格
   const epBox = document.getElementById("epGrid");
   let epHtml = "";
   currentDrama.episodeList.forEach(ep=>{
@@ -384,13 +324,13 @@ function openDramaDetail(dramaId){
   });
   epBox.innerHTML = epHtml;
 }
-//返回首页
+
 function backHome(){
   document.getElementById("homePage").style.display = "block";
   document.getElementById("dramaDetailPage").style.display = "none";
   currentDrama = null;
 }
-// ========== Supabase 配置 ==========
+
 const API_URL = "https://famruqybqslcslkckpyk.supabase.co/rest/v1";
 const API_KEY = "sb_publishable_iie6HBAS9jm48lD7zZ3Zug_CgXYXVLf";
 let userId = localStorage.getItem("waiman_uid") || null;
@@ -399,6 +339,7 @@ const headers = {
   "Authorization": "Bearer " + API_KEY,
   "Content-Type": "application/json"
 };
+
 async function apiFetch(url, options = {}, retryCount = 2) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -419,6 +360,7 @@ async function apiFetch(url, options = {}, retryCount = 2) {
     throw e;
   }
 }
+
 function showMsg(text, isOk) {
   const box = document.getElementById("msg");
   box.innerText = text;
@@ -426,6 +368,7 @@ function showMsg(text, isOk) {
   box.style.display = "block";
   setTimeout(()=>{ box.style.display="none"; }, 3000);
 }
+
 async function testDb() {
   showMsg("正在测试连接...", true);
   try {
@@ -440,9 +383,11 @@ async function testDb() {
     showMsg("连接失败：" + e.message, false);
   }
 }
+
 const ADMIN_PASSWORD = "woaiyudian0325";
 let adminUserList = [];
 let editingUserId = null;
+
 function showAdminLogin() {
   const pwd = prompt("请输入管理员密码：");
   if(pwd === ADMIN_PASSWORD) {
@@ -454,11 +399,13 @@ function showAdminLogin() {
     showMsg("密码错误！", false);
   }
 }
+
 function logoutAdmin() {
   document.getElementById("adminSection").style.display = "none";
   document.getElementById("editPanel").style.display = "none";
   editingUserId = null;
 }
+
 async function loadAdminList() {
   try {
     const res = await apiFetch(API_URL + "/users?select=id,nickname,points&order=points.desc", {});
@@ -466,6 +413,7 @@ async function loadAdminList() {
     renderAdminList();
   } catch(e) { showMsg("加载用户列表失败", false); }
 }
+
 function renderAdminList() {
   const keyword = document.getElementById("searchInput").value.trim();
   let list = adminUserList;
@@ -479,6 +427,7 @@ function renderAdminList() {
   });
   box.innerHTML=html;
 }
+
 function editUser(id,name,points){
   editingUserId=id;
   document.getElementById("editUserName").innerText="用户："+name;
@@ -486,9 +435,11 @@ function editUser(id,name,points){
   document.getElementById("pointsInput").value="";
   document.getElementById("editPanel").style.display="block";
 }
+
 function closeEdit(){
   document.getElementById("editPanel").style.display="none";editingUserId=null;
 }
+
 async function savePoints(){
   if(!editingUserId) return;
   const change=parseInt(document.getElementById("pointsInput").value);
@@ -503,6 +454,7 @@ async function savePoints(){
     closeEdit();loadAdminList();loadRank();refreshMyPoint();
   }else showMsg("修改失败",false);
 }
+
 async function applyPoints() {
   if(!userId){ showMsg("请先入场登记昵称！",false);return; }
   const nick=document.getElementById("nickInput").value.trim();
@@ -512,6 +464,7 @@ async function applyPoints() {
     else showMsg("提交失败，请重试",false);
   }catch(e){showMsg("网络错误，提交失败",false);}
 }
+
 async function loadPending(){
   try{
     const res=await apiFetch(API_URL+"/point_requests?select=*&status=eq.pending&order=created_at.desc",{});
@@ -530,6 +483,7 @@ async function loadPending(){
     box.innerHTML=html;
   }catch(e){document.getElementById("pendingList").innerHTML='<div class="empty">加载失败</div>';}
 }
+
 async function approveRequest(reqId,uid,points){
   await apiFetch(API_URL+"/point_requests?id=eq."+reqId,{method:"PATCH",body:JSON.stringify({status:"approved"})});
   const res=await apiFetch(API_URL+"/users?select=points&id=eq."+uid,{});
@@ -541,10 +495,12 @@ async function approveRequest(reqId,uid,points){
   showMsg("已通过！给用户加了"+points+"分",true);
   loadPending();loadAdminList();loadRank();
 }
+
 async function rejectRequest(reqId){
   await apiFetch(API_URL+"/point_requests?id=eq."+reqId,{method:"PATCH",body:JSON.stringify({status:"rejected"})});
   showMsg("已拒绝",true);loadPending();
 }
+
 async function registerNick() {
   const nick=document.getElementById("nickInput").value.trim();
   if(!nick){showMsg("昵称不能为空",false);return;}
@@ -564,6 +520,7 @@ async function registerNick() {
     showMsg("注册成功！欢迎「"+nick+"」",true);refreshMyPoint();loadRank();
   }catch(e){showMsg("网络错误："+e.message,false);}
 }
+
 async function refreshMyPoint() {
   if(!userId) return;
   const res=await apiFetch(API_URL+"/users?select=nickname,points,last_checkin&id=eq."+userId,{});
@@ -575,6 +532,7 @@ async function refreshMyPoint() {
   const tipBox=document.getElementById("checkinTip");
   tipBox.innerText= me.last_checkin===today?"今天已经签到过啦，明天再来吧！":"";
 }
+
 async function dailyCheckin() {
   if(!userId){showMsg("请先入场登记昵称！",false);return;}
   const today=new Date().toISOString().split('T')[0];
@@ -588,6 +546,7 @@ async function dailyCheckin() {
   if(res2.ok){showMsg("签到成功！+10积分",true);refreshMyPoint();loadRank();}
   else showMsg("签到失败，请重试",false);
 }
+
 async function exchange(type){
   if(!userId){showMsg("请先入场登记昵称！",false);return;}
   let cost,title;
@@ -598,13 +557,14 @@ async function exchange(type){
   const data=await res.json();
   if(!data||data.length===0){showMsg("读取积分失败",false);return;}
   const now=data[0].points;
-  if(now<cost){showMsg("积分不足！还差"+(cost‑now)+"分",false);return;}
-  const newP=now‑cost;
+  if(now<cost){showMsg("积分不足！还差"+(cost-now)+"分",false);return;}
+  const newP=now-cost;
   const res2=await apiFetch(API_URL+"/users?id=eq."+userId,{method:"PATCH",body:JSON.stringify({points:newP})});
   if(!res2.ok){showMsg("兑换失败",false);return;}
   await apiFetch(API_URL+"/activities",{method:"POST",body:JSON.stringify({user_id:userId,action:title,change:-cost})});
   showMsg(title+"成功！",true);refreshMyPoint();loadRank();
 }
+
 function renderRankHTML(data){
   if(!data||data.length===0) return '<div class="empty">暂无玩家，快来当第一个！</div>';
   let html="";
@@ -615,6 +575,7 @@ function renderRankHTML(data){
   });
   return html;
 }
+
 async function loadRank() {
   const box=document.getElementById("rankBox");
   const cached=localStorage.getItem("waiman_rank");
@@ -630,6 +591,7 @@ async function loadRank() {
     else box.innerHTML='<div class="empty">网络较慢，点上方刷新重试</div>';
   }
 }
+
 window.onload = ()=>{
   renderHomeDrama();
   loadRank();
