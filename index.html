@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!-- 新增：关闭referrer，绕过易云盘防盗链 -->
+<meta name="referrer" content="no-referrer">
 <title>短剧粉丝站</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>¥</text></svg>" />
 <style>
@@ -38,47 +40,90 @@ h1{
   margin-bottom:14px;
   border:1px solid #2e2e3a;
 }
-.drama-card{
+/* ==========红果风格：短剧首页卡片========== */
+.drama-home-card{
   background:#1f1f27;
   border-radius:12px;
-  padding:18px;
-  margin-bottom:14px;
+  overflow:hidden;
+  margin-bottom:16px;
   border:1px solid #2e2e3a;
+  cursor:pointer;
 }
-.drama-name{
+.drama-home-cover{
+  width:100%;
+  height:220px;
+  object-fit:cover;
+  display:block;
+}
+.drama-home-info{
+  padding:14px;
+}
+.drama-home-name{
   font-size:18px;
-  font-weight:700;
+  font-weight:bold;
   color:#ffaa2b;
   margin-bottom:6px;
 }
-.drama-desc{
+.drama-home-desc{
   font-size:13px;
-  color:#999;
-  margin-bottom:14px;
+  color:#aaa;
   line-height:1.5;
 }
-.btn-row{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-top:14px;
+/* ==========剧集详情页样式========== */
+#dramaDetailPage{
+  display:none;
 }
-.btn-row a,.btn-row button{
-  flex:1;
-  min-width:120px;
-  text-align:center;
-  text-decoration:none;
-  padding:12px;
-  border-radius:8px;
+.detail-top-cover{
+  width:100%;
+  height:240px;
+  object-fit:cover;
+  border-radius:12px;
+}
+.detail-name{
+  font-size:20px;
+  color:#ffaa2b;
+  font-weight:bold;
+  margin:12px 0 6px;
+}
+.detail-desc{
+  color:#aaa;
   font-size:14px;
-  font-weight:700;
+  line-height:1.5;
+  margin-bottom:14px;
+}
+.back-btn{
+  background:#3a3a48;
+  color:#fff;
   border:none;
+  padding:10px 14px;
+  border-radius:8px;
+  margin-bottom:12px;
   cursor:pointer;
 }
-.watch-btn{background:#ff7720;color:#000;}
-.feedback-btn{background:#2994ff;color:#fff;}
-
-/* 原生video弹窗播放器 */
+.ep-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-top:14px;
+}
+.ep-item{
+  background:#242430;
+  border-radius:10px;
+  overflow:hidden;
+  cursor:pointer;
+}
+.ep-cover{
+  width:100%;
+  height:110px;
+  object-fit:cover;
+  display:block;
+}
+.ep-label{
+  text-align:center;
+  padding:6px 4px;
+  font-size:13px;
+}
+/* ==========视频弹窗========== */
 .video-modal{
   position:fixed;
   inset:0;
@@ -103,8 +148,11 @@ h1{
   background:#ff4444;
   color:white;
   width:100%;
+  border:none;
+  padding:12px;
+  border-radius:8px;
+  cursor:pointer;
 }
-
 input{
   width:100%;
   padding:12px 14px;
@@ -171,22 +219,32 @@ button.sec{background:#3a3a48;color:#fff;}
 </head>
 <body>
 <h1>短剧粉丝站</h1>
-
-<!-- 视频弹窗：原生video标签，不再使用第三方iframe脚本 -->
+<!-- 视频弹窗 -->
 <div class="video-modal" id="videoModal">
   <div class="video-inner">
     <button class="close-modal" onclick="closeVideoModal()">✖ 关闭播放器</button>
     <video id="playVideo" controls preload="metadata">
       <source src="" type="video/mp4">
-      你的浏览器不支持视频播放
+      浏览器不支持播放
     </video>
   </div>
 </div>
-
-<!-- ========== 剧集列表 ========== -->
-<div class="section-title">我的剧集</div>
-<div id="dramaList"></div>
-<!-- ========== 积分系统 ========== -->
+<!-- =========首页：全部短剧列表========= -->
+<div id="homePage">
+  <div class="section-title">全部短剧</div>
+  <div id="dramaHomeList"></div>
+</div>
+<!-- =========短剧详情页：单部剧+集数列表========= -->
+<div id="dramaDetailPage">
+  <button class="back-btn" onclick="backHome()">← 返回首页</button>
+  <img id="detailCover" class="detail-top-cover" src="" alt="">
+  <div id="detailName" class="detail-name"></div>
+  <div id="detailDesc" class="detail-desc"></div>
+  <div class="tip">反馈问卷：<a id="detailFeedbackLink" target="_blank" style="color:#42a5ff;">点击打开</a></div>
+  <div class="section-title">全部集数</div>
+  <div id="epGrid" class="ep-grid"></div>
+</div>
+<!-- =========积分系统 完全保留========= -->
 <div class="section-title">积分中心</div>
 <div id="msg"></div>
 <div class="card">
@@ -233,11 +291,10 @@ button.sec{background:#3a3a48;color:#fff;}
       <div style="margin-bottom:8px;font-weight:600;" id="editUserName">用户：</div>
       <div style="margin-bottom:8px;">当前积分：<span id="editUserPoints" style="color:#ffaa2b;font-weight:700;">0</span></div>
       <input id="pointsInput" type="number" placeholder="输入要加/减的积分数量" style="margin-bottom:8px;" />
-      <div style="font-size:13px;color:#999;margin-bottom:8px;">正数=加积分，负数=减积分（比如填 20 就是加20分，填 -10 就是减10分）</div>
+      <div style="font-size:13px;color:#999;margin-bottom:8px;">正数=加积分，负数=减积分</div>
       <button onclick="savePoints()">确认修改</button>
       <button class="sec" onclick="closeEdit()">取消</button>
     </div>
-    <!-- 待审核申请 -->
     <div style="margin:15px 0;padding-top:15px;border-top:1px solid #444;">
       <div style="font-weight:600;margin-bottom:10px;color:#ffaa2b;">待审核的积分申请</div>
       <div id="pendingList" style="max-height:250px;overflow-y:auto;">
@@ -249,31 +306,40 @@ button.sec{background:#3a3a48;color:#fff;}
     <button class="sec" onclick="logoutAdmin()">退出管理员模式</button>
   </div>
 </div>
-<!-- 隐藏的管理员入口 -->
 <div style="text-align:center;margin-top:20px;padding:10px;">
   <a href="javascript:void(0)" onclick="showAdminLogin()" style="font-size:12px;color:#555;text-decoration:none;">管理员入口</a>
 </div>
 <script>
-// ==========================================
-// ⚠️在这里替换！填真正的mp4直链（以 .mp4结尾）
-// ==========================================
-const DRAMAS = [
+//====================【视频配置：把videoSrc替换成你的易云盘MP4直链】====================
+const DRAMA_LIST = [
   {
+    dramaId: "drama01",
     name: "外卖之富",
     desc: "外卖小哥意外获得暴富系统，从此走上人生巅峰",
-    videoSrc: "在这里替换成你的https://xxx.mp4直链！！",
-    feedbackUrl: "https://yfdexmbo.jsjform.com/f/ytLqvX"
+    dramaCover: "https://huggingface.co/datasets/你的用户名/数据集名/resolve/main/cover_drama01.jpg",
+    feedbackUrl: "https://yfdexmbo.jsjform.com/f/ytLqvX",
+    episodeList: [
+      {
+        epNum:1,
+        epTitle:"第1集",
+        epCover:"https://huggingface.co/datasets/你的用户名/数据集名/resolve/main/cover_ep1.jpg",
+        // 👉这里替换为易云盘mp4直链
+        videoSrc:"https://id5uuto33o40lc.1yunpan.com/你的视频文件名.mp4"
+      }
+      //继续复制增加更多集数
+    ]
   }
 ];
-
-// 打开原生video弹窗
+//=========================================================================
+let currentDrama = null;
+//打开视频弹窗
 function openVideoModal(src){
   const modal = document.getElementById('videoModal');
   const videoDom = document.getElementById('playVideo');
   videoDom.src = src;
   modal.style.display = 'flex';
 }
-// 关闭弹窗，停止播放释放流量
+//关闭弹窗
 function closeVideoModal(){
   const modal = document.getElementById('videoModal');
   const videoDom = document.getElementById('playVideo');
@@ -281,24 +347,49 @@ function closeVideoModal(){
   videoDom.src = "";
   modal.style.display = 'none';
 }
-
-// 渲染剧集列表
-function renderDramas() {
-  const box = document.getElementById("dramaList");
+//渲染首页全部短剧卡片
+function renderHomeDrama(){
+  const box = document.getElementById("dramaHomeList");
   let html = "";
-  DRAMAS.forEach((drama, i) => {
-    html += '<div class="drama-card">'
-      + '<div class="drama-name">' + drama.name + '</div>'
-      + '<div class="drama-desc">' + drama.desc + '</div>'
-      + '<div class="btn-row">'
-      +   '<button class="watch-btn" onclick="openVideoModal(\''+drama.videoSrc+'\')">▶ 点击播放短剧</button>'
-      +   '<a class="feedback-btn" href="' + drama.feedbackUrl + '" target="_blank">反馈/问卷</a>'
-      + '</div>'
-      + '</div>';
+  DRAMA_LIST.forEach(drama=>{
+    html += `<div class="drama-home-card" onclick="openDramaDetail('${drama.dramaId}')">
+      <img class="drama-home-cover" src="${drama.dramaCover}" alt="${drama.name}">
+      <div class="drama-home-info">
+        <div class="drama-home-name">${drama.name}</div>
+        <div class="drama-home-desc">${drama.desc}</div>
+      </div>
+    </div>`;
   });
   box.innerHTML = html;
 }
-
+//打开某部剧详情页
+function openDramaDetail(dramaId){
+  currentDrama = DRAMA_LIST.find(d=>d.dramaId === dramaId);
+  if(!currentDrama) return;
+  //切换页面显示
+  document.getElementById("homePage").style.display = "none";
+  document.getElementById("dramaDetailPage").style.display = "block";
+  document.getElementById("detailCover").src = currentDrama.dramaCover;
+  document.getElementById("detailName").innerText = currentDrama.name;
+  document.getElementById("detailDesc").innerText = currentDrama.desc;
+  document.getElementById("detailFeedbackLink").href = currentDrama.feedbackUrl;
+  //渲染集数网格
+  const epBox = document.getElementById("epGrid");
+  let epHtml = "";
+  currentDrama.episodeList.forEach(ep=>{
+    epHtml += `<div class="ep-item" onclick="openVideoModal('${ep.videoSrc}')">
+      <img class="ep-cover" src="${ep.epCover}" alt="${ep.epTitle}">
+      <div class="ep-label">${ep.epTitle}</div>
+    </div>`;
+  });
+  epBox.innerHTML = epHtml;
+}
+//返回首页
+function backHome(){
+  document.getElementById("homePage").style.display = "block";
+  document.getElementById("dramaDetailPage").style.display = "none";
+  currentDrama = null;
+}
 // ========== Supabase 配置 ==========
 const API_URL = "https://famruqybqslcslkckpyk.supabase.co/rest/v1";
 const API_KEY = "sb_publishable_iie6HBAS9jm48lD7zZ3Zug_CgXYXVLf";
@@ -308,7 +399,6 @@ const headers = {
   "Authorization": "Bearer " + API_KEY,
   "Content-Type": "application/json"
 };
-// ========== 带超时和自动重试的请求函数 ==========
 async function apiFetch(url, options = {}, retryCount = 2) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -339,9 +429,7 @@ function showMsg(text, isOk) {
 async function testDb() {
   showMsg("正在测试连接...", true);
   try {
-    const res = await apiFetch(API_URL + "/users?select=id&limit=1", {
-      headers: headers
-    });
+    const res = await apiFetch(API_URL + "/users?select=id&limit=1", {});
     if(res.ok) {
       const data = await res.json();
       showMsg("数据库连接成功！当前有 " + data.length + " 条数据", true);
@@ -349,11 +437,9 @@ async function testDb() {
       showMsg("连接失败，错误码：" + res.status, false);
     }
   } catch(e) {
-    console.error("测试失败：", e);
-    showMsg("连接失败：" + e.message + "（可能是网络问题，换手机流量试试）", false);
+    showMsg("连接失败：" + e.message, false);
   }
 }
-// ========== 管理员后台 ==========
 const ADMIN_PASSWORD = "woaiyudian0325";
 let adminUserList = [];
 let editingUserId = null;
@@ -375,353 +461,179 @@ function logoutAdmin() {
 }
 async function loadAdminList() {
   try {
-    const res = await apiFetch(API_URL + "/users?select=id,nickname,points&order=points.desc", {
-      headers: headers
-    });
+    const res = await apiFetch(API_URL + "/users?select=id,nickname,points&order=points.desc", {});
     adminUserList = await res.json();
     renderAdminList();
-  } catch(e) {
-    showMsg("加载用户列表失败", false);
-  }
+  } catch(e) { showMsg("加载用户列表失败", false); }
 }
 function renderAdminList() {
   const keyword = document.getElementById("searchInput").value.trim();
   let list = adminUserList;
-  if(keyword) {
-    list = list.filter(u => u.nickname.includes(keyword));
-  }
+  if(keyword) list = list.filter(u => u.nickname.includes(keyword));
   const box = document.getElementById("adminUserList");
-  if(list.length === 0) {
-    box.innerHTML = '<div class="empty">没有找到用户</div>';
-    return;
-  }
-  let html = "";
-  list.forEach(u => {
-    html += '<div class="rank-item" style="cursor:pointer;" onclick="editUser(\'' + u.id + '\', \'' + u.nickname + '\', ' + u.points + ')">'
-      + '<span>' + u.nickname + '</span>'
-      + '<span style="color:#ffaa2b;font-weight:600;">' + u.points + '分</span>'
-      + '</div>';
+  if(list.length ===0){ box.innerHTML='<div class="empty">没有找到用户</div>';return; }
+  let html="";
+  list.forEach(u=>{
+    html +=`<div class="rank-item" style="cursor:pointer;" onclick="editUser('${u.id}','${u.nickname}',${u.points})">
+    <span>${u.nickname}</span><span style="color:#ffaa2b;font-weight:600;">${u.points}分</span></div>`;
   });
-  box.innerHTML = html;
+  box.innerHTML=html;
 }
-function editUser(id, name, points) {
-  editingUserId = id;
-  document.getElementById("editUserName").innerText = "用户：" + name;
-  document.getElementById("editUserPoints").innerText = points;
-  document.getElementById("pointsInput").value = "";
-  document.getElementById("editPanel").style.display = "block";
+function editUser(id,name,points){
+  editingUserId=id;
+  document.getElementById("editUserName").innerText="用户："+name;
+  document.getElementById("editUserPoints").innerText=points;
+  document.getElementById("pointsInput").value="";
+  document.getElementById("editPanel").style.display="block";
 }
-function closeEdit() {
-  document.getElementById("editPanel").style.display = "none";
-  editingUserId = null;
+function closeEdit(){
+  document.getElementById("editPanel").style.display="none";editingUserId=null;
 }
-async function savePoints() {
+async function savePoints(){
   if(!editingUserId) return;
-  const change = parseInt(document.getElementById("pointsInput").value);
-  if(isNaN(change)) {
-    showMsg("请输入数字！", false);
-    return;
-  }
-  const res = await apiFetch(API_URL + "/users?select=points&id=eq." + editingUserId, {
-    headers: headers
-  });
-  const data = await res.json();
-  if(!data || data.length === 0) {
-    showMsg("用户不存在", false);
-    return;
-  }
-  const newPoints = data[0].points + change;
-  const res2 = await apiFetch(API_URL + "/users?id=eq." + editingUserId, {
-    method: "PATCH",
-    headers: headers,
-    body: JSON.stringify({ points: newPoints })
-  });
-  if(res2.ok) {
-    showMsg("修改成功！" + (change >= 0 ? "加" : "减") + Math.abs(change) + "分", true);
-    closeEdit();
-    loadAdminList();
-    loadRank();
-    refreshMyPoint();
-  } else {
-    showMsg("修改失败", false);
-  }
+  const change=parseInt(document.getElementById("pointsInput").value);
+  if(isNaN(change)){ showMsg("请输入数字！",false);return; }
+  const res=await apiFetch(API_URL+"/users?select=points&id=eq."+editingUserId,{});
+  const data=await res.json();
+  if(!data||data.length===0){showMsg("用户不存在",false);return;}
+  const newPoints=data[0].points+change;
+  const res2=await apiFetch(API_URL+"/users?id=eq."+editingUserId,{method:"PATCH",body:JSON.stringify({points:newPoints})});
+  if(res2.ok){
+    showMsg("修改成功！"+(change>=0?"加":"减")+Math.abs(change)+"分",true);
+    closeEdit();loadAdminList();loadRank();refreshMyPoint();
+  }else showMsg("修改失败",false);
 }
-// ========== 积分申请功能 ==========
 async function applyPoints() {
-  if(!userId) {
-    showMsg("请先入场登记昵称！", false);
-    return;
-  }
-  const nick = document.getElementById("nickInput").value.trim();
-  try {
-    const res = await apiFetch(API_URL + "/point_requests", {
-      method: "POST",
-      headers: headers,
-      body: JSON.stringify({
-        user_id: userId,
-        nickname: nick,
-        points: 60,
-        reason: "填完问卷领积分",
-        status: "pending"
-      })
-    });
-    if(res.ok) {
-      showMsg("申请已提交！等待站长审核通过后到账", true);
-    } else {
-      showMsg("提交失败，请重试", false);
-    }
-  } catch(e) {
-    showMsg("网络错误，提交失败", false);
-  }
+  if(!userId){ showMsg("请先入场登记昵称！",false);return; }
+  const nick=document.getElementById("nickInput").value.trim();
+  try{
+    const res=await apiFetch(API_URL+"/point_requests",{method:"POST",body:JSON.stringify({user_id:userId,nickname:nick,points:60,reason:"填完问卷领积分",status:"pending"})});
+    if(res.ok) showMsg("申请已提交！等待站长审核通过后到账",true);
+    else showMsg("提交失败，请重试",false);
+  }catch(e){showMsg("网络错误，提交失败",false);}
 }
-async function loadPending() {
-  try {
-    const res = await apiFetch(API_URL + "/point_requests?select=*&status=eq.pending&order=created_at.desc", {
-      headers: headers
+async function loadPending(){
+  try{
+    const res=await apiFetch(API_URL+"/point_requests?select=*&status=eq.pending&order=created_at.desc",{});
+    const data=await res.json();
+    const box=document.getElementById("pendingList");
+    if(!data||data.length===0){box.innerHTML='<div class="empty">暂无待审核申请</div>';return;}
+    let html="";
+    data.forEach(item=>{
+      html+=`<div style="background:#272735;padding:10px;border-radius:6px;margin:6px 0;">
+      <div style="font-weight:600;margin-bottom:4px;">${item.nickname}</div>
+      <div style="font-size:13px;color:#999;margin-bottom:6px;">申请+${item.points}分｜${item.reason}</div>
+      <button style="background:#22cc66;color:#000;padding:6px 12px;font-size:13px;" onclick="approveRequest('${item.id}','${item.user_id}',${item.points})">通过</button>
+      <button class="sec" style="padding:6px 12px;font-size:13px;" onclick="rejectRequest('${item.id}')">拒绝</button>
+      </div>`;
     });
-    const data = await res.json();
-    const box = document.getElementById("pendingList");
-    if(!data || data.length === 0) {
-      box.innerHTML = '<div class="empty">暂无待审核申请</div>';
-      return;
-    }
-    let html = "";
-    data.forEach(item => {
-      html += '<div style="background:#272735;padding:10px;border-radius:6px;margin:6px 0;">'
-        + '<div style="font-weight:600;margin-bottom:4px;">' + item.nickname + '</div>'
-        + '<div style="font-size:13px;color:#999;margin-bottom:6px;">申请+' + item.points + '分｜' + item.reason + '</div>'
-        + '<button style="background:#22cc66;color:#000;padding:6px 12px;font-size:13px;" onclick="approveRequest(\'' + item.id + '\', \'' + item.user_id + '\', ' + item.points + ')">通过</button>'
-        + '<button class="sec" style="padding:6px 12px;font-size:13px;" onclick="rejectRequest(\'' + item.id + '\')">拒绝</button>'
-        + '</div>';
-    });
-    box.innerHTML = html;
-  } catch(e) {
-    document.getElementById("pendingList").innerHTML = '<div class="empty">加载失败</div>';
-  }
+    box.innerHTML=html;
+  }catch(e){document.getElementById("pendingList").innerHTML='<div class="empty">加载失败</div>';}
 }
-async function approveRequest(reqId, uid, points) {
-  await apiFetch(API_URL + "/point_requests?id=eq." + reqId, {
-    method: "PATCH",
-    headers: headers,
-    body: JSON.stringify({ status: "approved" })
-  });
-  const res = await apiFetch(API_URL + "/users?select=points&id=eq." + uid, {
-    headers: headers
-  });
-  const data = await res.json();
-  if(data && data.length > 0) {
-    const newPoints = data[0].points + points;
-    await apiFetch(API_URL + "/users?id=eq." + uid, {
-      method: "PATCH",
-      headers: headers,
-      body: JSON.stringify({ points: newPoints })
-    });
+async function approveRequest(reqId,uid,points){
+  await apiFetch(API_URL+"/point_requests?id=eq."+reqId,{method:"PATCH",body:JSON.stringify({status:"approved"})});
+  const res=await apiFetch(API_URL+"/users?select=points&id=eq."+uid,{});
+  const data=await res.json();
+  if(data&&data.length>0){
+    const newPoints=data[0].points+points;
+    await apiFetch(API_URL+"/users?id=eq."+uid,{method:"PATCH",body:JSON.stringify({points:newPoints})});
   }
-  showMsg("已通过！给用户加了" + points + "分", true);
-  loadPending();
-  loadAdminList();
-  loadRank();
+  showMsg("已通过！给用户加了"+points+"分",true);
+  loadPending();loadAdminList();loadRank();
 }
-async function rejectRequest(reqId) {
-  await apiFetch(API_URL + "/point_requests?id=eq." + reqId, {
-    method: "PATCH",
-    headers: headers,
-    body: JSON.stringify({ status: "rejected" })
-  });
-  showMsg("已拒绝", true);
-  loadPending();
+async function rejectRequest(reqId){
+  await apiFetch(API_URL+"/point_requests?id=eq."+reqId,{method:"PATCH",body:JSON.stringify({status:"rejected"})});
+  showMsg("已拒绝",true);loadPending();
 }
 async function registerNick() {
-  const nick = document.getElementById("nickInput").value.trim();
-  if(!nick) {
-    showMsg("昵称不能为空", false);
-    return;
-  }
-  try {
-    const res = await apiFetch(API_URL + "/users?select=id,points&nickname=eq." + encodeURIComponent(nick), {
-      headers: headers
-    });
-    if(!res.ok) {
-      showMsg("数据库连接失败（错误码：" + res.status + "）", false);
-      return;
+  const nick=document.getElementById("nickInput").value.trim();
+  if(!nick){showMsg("昵称不能为空",false);return;}
+  try{
+    const res=await apiFetch(API_URL+"/users?select=id,points&nickname=eq."+encodeURIComponent(nick),{});
+    if(!res.ok){showMsg("数据库连接失败（错误码："+res.status+"）",false);return;}
+    const data=await res.json();
+    if(data&&data.length>0){
+      userId=data[0].id;localStorage.setItem("waiman_uid",userId);
+      showMsg("欢迎回来："+nick,true);refreshMyPoint();loadRank();return;
     }
-    const data = await res.json();
-    if(data && data.length > 0) {
-      userId = data[0].id;
-      localStorage.setItem("waiman_uid", userId);
-      showMsg("欢迎回来：" + nick, true);
-      refreshMyPoint();
-      loadRank();
-      return;
-    }
-    const res2 = await apiFetch(API_URL + "/users", {
-      method: "POST",
-      headers: headers,
-      body: JSON.stringify({ nickname: nick, points: 0 })
-    });
-    if(!res2.ok) {
-      const errText = await res2.text();
-      showMsg("注册失败（" + res2.status + "）：" + errText.substring(0, 50), false);
-      return;
-    }
-    const data2 = await res2.json();
-    if(!data2 || data2.length === 0) {
-      showMsg("注册失败：返回数据为空", false);
-      return;
-    }
-    userId = data2[0].id;
-    localStorage.setItem("waiman_uid", userId);
-    showMsg("注册成功！欢迎「" + nick + "」", true);
-    refreshMyPoint();
-    loadRank();
-  } catch(e) {
-    console.error("出错了：", e);
-    showMsg("网络错误：" + e.message + "（试试换手机流量）", false);
-  }
+    const res2=await apiFetch(API_URL+"/users",{method:"POST",body:JSON.stringify({nickname:nick,points:0})});
+    if(!res2.ok){const err=await res2.text();showMsg("注册失败("+res2.status+")："+err.substring(0,50),false);return;}
+    const data2=await res2.json();
+    if(!data2||data2.length===0){showMsg("注册失败：返回数据为空",false);return;}
+    userId=data2[0].id;localStorage.setItem("waiman_uid",userId);
+    showMsg("注册成功！欢迎「"+nick+"」",true);refreshMyPoint();loadRank();
+  }catch(e){showMsg("网络错误："+e.message,false);}
 }
 async function refreshMyPoint() {
   if(!userId) return;
-  const res = await apiFetch(API_URL + "/users?select=nickname,points,last_checkin&id=eq." + userId, {
-    headers: headers
-  });
-  const data = await res.json();
-  if(!data || data.length === 0) {
-    showMsg("读取积分失败", false);
-    return;
-  }
-  const me = data[0];
-  document.getElementById("myInfo").innerHTML =
-    "昵称：" + me.nickname + "<br />" +
-    '积分：<span class="me-points">' + me.points + "</span>";
-  const today = new Date().toISOString().split('T')[0];
-  const tipBox = document.getElementById("checkinTip");
-  if(me.last_checkin === today) {
-    tipBox.innerText = "今天已经签到过啦，明天再来吧！";
-    tipBox.style.color = "#888";
-  } else {
-    tipBox.innerText = "";
-  }
+  const res=await apiFetch(API_URL+"/users?select=nickname,points,last_checkin&id=eq."+userId,{});
+  const data=await res.json();
+  if(!data||data.length===0){showMsg("读取积分失败",false);return;}
+  const me=data[0];
+  document.getElementById("myInfo").innerHTML=`昵称：${me.nickname}<br>积分：<span class="me-points">${me.points}</span>`;
+  const today=new Date().toISOString().split('T')[0];
+  const tipBox=document.getElementById("checkinTip");
+  tipBox.innerText= me.last_checkin===today?"今天已经签到过啦，明天再来吧！":"";
 }
 async function dailyCheckin() {
-  if(!userId) {
-    showMsg("请先入场登记昵称！", false);
-    return;
-  }
-  const today = new Date().toISOString().split('T')[0];
-  const res = await apiFetch(API_URL + "/users?select=points,last_checkin&id=eq." + userId, {
-    headers: headers
-  });
-  const data = await res.json();
-  if(!data || data.length === 0) {
-    showMsg("读取失败，请刷新重试", false);
-    return;
-  }
-  const user = data[0];
-  if(user.last_checkin === today) {
-    showMsg("今天已经签到过了，明天再来吧！", false);
-    return;
-  }
-  const newPoints = user.points + 10;
-  const res2 = await apiFetch(API_URL + "/users?id=eq." + userId, {
-    method: "PATCH",
-    headers: headers,
-    body: JSON.stringify({
-      points: newPoints,
-      last_checkin: today
-    })
-  });
-  if(res2.ok) {
-    showMsg("签到成功！+10积分", true);
-    refreshMyPoint();
-    loadRank();
-  } else {
-    showMsg("签到失败，请重试", false);
-  }
+  if(!userId){showMsg("请先入场登记昵称！",false);return;}
+  const today=new Date().toISOString().split('T')[0];
+  const res=await apiFetch(API_URL+"/users?select=points,last_checkin&id=eq."+userId,{});
+  const data=await res.json();
+  if(!data||data.length===0){showMsg("读取失败，请刷新重试",false);return;}
+  const user=data[0];
+  if(user.last_checkin===today){showMsg("今天已经签到过了，明天再来吧！",false);return;}
+  const newPoints=user.points+10;
+  const res2=await apiFetch(API_URL+"/users?id=eq."+userId,{method:"PATCH",body:JSON.stringify({points:newPoints,last_checkin:today})});
+  if(res2.ok){showMsg("签到成功！+10积分",true);refreshMyPoint();loadRank();}
+  else showMsg("签到失败，请重试",false);
 }
-async function exchange(type) {
-  if(!userId) {
-    showMsg("请先入场登记昵称！", false);
-    return;
-  }
-  let cost, title;
-  if(type === "urge") { cost = 100; title = "兑换催更"; }
-  else if(type === "predict") { cost = 30; title = "剧情预测"; }
+async function exchange(type){
+  if(!userId){showMsg("请先入场登记昵称！",false);return;}
+  let cost,title;
+  if(type==="urge"){cost=100;title="兑换催更";}
+  else if(type==="predict"){cost=30;title="剧情预测";}
   else return;
-  const res = await apiFetch(API_URL + "/users?select=points&id=eq." + userId, {
-    headers: headers
-  });
-  const data = await res.json();
-  if(!data || data.length === 0) {
-    showMsg("读取积分失败", false);
-    return;
-  }
-  const nowPoints = data[0].points;
-  if(nowPoints < cost) {
-    showMsg("积分不足！还差" + (cost - nowPoints) + "分", false);
-    return;
-  }
-  const newPoint = nowPoints - cost;
-  const res2 = await apiFetch(API_URL + "/users?id=eq." + userId, {
-    method: "PATCH",
-    headers: headers,
-    body: JSON.stringify({ points: newPoint })
-  });
-  if(!res2.ok) {
-    showMsg("兑换失败", false);
-    return;
-  }
-  await apiFetch(API_URL + "/activities", {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify({ user_id: userId, action: title, change: -cost })
-  });
-  showMsg(title + "成功！", true);
-  refreshMyPoint();
-  loadRank();
+  const res=await apiFetch(API_URL+"/users?select=points&id=eq."+userId,{});
+  const data=await res.json();
+  if(!data||data.length===0){showMsg("读取积分失败",false);return;}
+  const now=data[0].points;
+  if(now<cost){showMsg("积分不足！还差"+(cost‑now)+"分",false);return;}
+  const newP=now‑cost;
+  const res2=await apiFetch(API_URL+"/users?id=eq."+userId,{method:"PATCH",body:JSON.stringify({points:newP})});
+  if(!res2.ok){showMsg("兑换失败",false);return;}
+  await apiFetch(API_URL+"/activities",{method:"POST",body:JSON.stringify({user_id:userId,action:title,change:-cost})});
+  showMsg(title+"成功！",true);refreshMyPoint();loadRank();
 }
-function renderRankHTML(data) {
-  if(!data || data.length === 0) return '<div class="empty">暂无玩家，快来当第一个！</div>';
-  let html = "";
-  data.forEach((item, i) => {
-    let cls = "";
-    if(i === 0) cls = "top1";
-    if(i === 1) cls = "top2";
-    if(i === 2) cls = "top3";
-    html += '<div class="rank-item ' + cls + '">'
-      + '<span><span class="rank-num">' + (i+1) + '</span>' + item.nickname + '</span>'
-      + '<span class="me-points">' + item.points + '</span>'
-      + "</div>";
+function renderRankHTML(data){
+  if(!data||data.length===0) return '<div class="empty">暂无玩家，快来当第一个！</div>';
+  let html="";
+  data.forEach((item,i)=>{
+    let cls="";
+    if(i===0)cls="top1";if(i===1)cls="top2";if(i===2)cls="top3";
+    html+=`<div class="rank-item ${cls}"><span><span class="rank-num">${i+1}</span>${item.nickname}</span><span class="me-points">${item.points}</span></div>`;
   });
   return html;
 }
 async function loadRank() {
-  const box = document.getElementById("rankBox");
-  const cached = localStorage.getItem("waiman_rank");
-  if(cached) {
-    box.innerHTML = renderRankHTML(JSON.parse(cached));
-  } else {
-    box.innerHTML = '<div class="empty">加载中...</div>';
-  }
-  try {
-    const res = await apiFetch(API_URL + "/users?select=nickname,points&order=points.desc&limit=50");
-    const data = await res.json();
-    localStorage.setItem("waiman_rank", JSON.stringify(data));
-    box.innerHTML = renderRankHTML(data);
-  } catch(e) {
-    if(cached) {
-      box.innerHTML = renderRankHTML(JSON.parse(cached))
-        + '<div style="text-align:center;font-size:12px;color:#888;margin-top:8px;">网络较慢，显示的是上次缓存的榜单</div>';
-    } else {
-      box.innerHTML = '<div class="empty">网络较慢，点上方刷新重试</div>';
-    }
+  const box=document.getElementById("rankBox");
+  const cached=localStorage.getItem("waiman_rank");
+  if(cached) box.innerHTML=renderRankHTML(JSON.parse(cached));
+  else box.innerHTML='<div class="empty">加载中...</div>';
+  try{
+    const res=await apiFetch(API_URL+"/users?select=nickname,points&order=points.desc&limit=50",{});
+    const data=await res.json();
+    localStorage.setItem("waiman_rank",JSON.stringify(data));
+    box.innerHTML=renderRankHTML(data);
+  }catch(e){
+    if(cached) box.innerHTML=renderRankHTML(JSON.parse(cached))+'<div style="text-align:center;font-size:12px;color:#888;margin-top:8px;">网络较慢，显示缓存榜单</div>';
+    else box.innerHTML='<div class="empty">网络较慢，点上方刷新重试</div>';
   }
 }
-window.onload = () => {
-  renderDramas();
+window.onload = ()=>{
+  renderHomeDrama();
   loadRank();
-  if(userId) {
-    refreshMyPoint();
-  }
+  if(userId) refreshMyPoint();
 };
 </script>
 </body>
