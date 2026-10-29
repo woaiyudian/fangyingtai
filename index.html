@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>短剧粉丝站</title>
+<title>外卖之富 - 短剧粉丝站</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>¥</text></svg>" />
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -31,6 +31,7 @@ h1{
   border-left:3px solid #ff8822;
   padding-left:10px;
 }
+.tip{font-size:13px;color:#999;margin:8px 0;line-height:1.5;}
 .card{
   background:#1f1f27;
   border-radius:12px;
@@ -169,22 +170,21 @@ button.sec{background:#3a3a48;color:#fff;}
 .rank-item.top1 .rank-num{background:#ffd700;color:#000;}
 .rank-item.top2 .rank-num{background:#c0c0c0;color:#000;}
 .rank-item.top3 .rank-num{background:#cd7f32;color:#000;}
-.tip{font-size:13px;color:#999;margin:8px 0;line-height:1.5;}
 #msg{
   padding:12px;
   border-radius:8px;
   margin:10px 0;
   display:none;
-  font-size:14px;
 }
-.msg-ok{background:#1b4b2c;color:#99ffaa;}
-.msg-err{background:#4b1b1b;color:#ffaaaa;}
-.empty{text-align:center;color:#666;padding:20px 0;font-size:14px;}
+.msg-ok{background:#1b3b2c;color:#99ffaa;}
+.msg-err{background:#4b2727;color:#ffaaaa;}
+.empty{text-align:center;color:#888;padding:20px 0;}
 .me-points{font-size:20px;color:#ffaa2b;font-weight:700;}
+#adminSection{display:none;}
 </style>
 </head>
 <body>
-<h1>短剧粉丝站</h1>
+<h1>外卖之富 · 短剧粉丝站</h1>
 <div id="homePage">
   <div class="section-title">全部短剧</div>
   <div id="dramaHomeList"></div>
@@ -194,70 +194,66 @@ button.sec{background:#3a3a48;color:#fff;}
   <img id="detailCover" class="detail-top-cover" src="" alt="">
   <div id="detailName" class="detail-name"></div>
   <div id="detailDesc" class="detail-desc"></div>
-  <div class="tip">反馈问卷：<a id="detailFeedbackLink" target="_blank" style="color:#42a5ff;">点击打开</a></div>
-  <div class="section-title">全部集数（点击集数，新标签页播放视频）</div>
+  <div class="tip">反馈问卷：<a id="detailFeedbackLink" target="_blank" style="color:#42a5ff;text-decoration:none;">打开链接</a></div>
+  <div class="section-title">全部集数</div>
+  <div class="tip">💡点击集数，跳转123云盘网页播放，访客无需登录注册</div>
   <div id="epGrid" class="ep-grid"></div>
 </div>
 
 <div class="section-title">积分中心</div>
 <div id="msg"></div>
 <div class="card">
-  <h2 style="font-size:16px;margin-bottom:12px;color:#ffbc49;font-weight:600;">入场登记</h2>
-  <input id="nickInput" placeholder="输入你的昵称（最多20字）" maxlength="20" />
+  <h2 style="font-size:16px;margin-bottom:12px;color:#ffbc49;">入场登记</h2>
+  <input id="nickInput" placeholder="输入昵称（最多20字）" maxlength="20">
   <button onclick="registerNick()">确认入场</button>
   <button class="sec" onclick="testDb()">测试数据库连接</button>
-  <div class="tip">昵称不能重复，注册成功后获得初始积分</div>
+  <div class="tip">昵称不能重复，登记后获得独立积分账号</div>
 </div>
 <div class="card">
-  <h2 style="font-size:16px;margin-bottom:12px;color:#ffbc49;font-weight:600;">我的账户</h2>
-  <div id="myInfo" style="font-size:15px;line-height:1.8;">暂未入场</div>
-  <button class="sec" onclick="refreshMyPoint()" style="margin-top:8px;">刷新积分</button>
+  <h2 style="font-size:16px;margin-bottom:12px;color:#ffbc49;">我的账号</h2>
+  <div id="myInfo" style="font-size:15px;line-height:1.6;">暂未入场</div>
+  <button class="sec" onclick="refreshMyPoint()" style="margin-top:8px;">刷新信息</button>
 </div>
 <div class="card">
-  <h2 style="font-size:16px;margin-bottom:12px;color:#ffbc49;font-weight:600;">每日签到</h2>
-  <div class="tip">每天签到一次，领10积分！</div>
-  <button style="background:#ffbb33;color:#000;" onclick="dailyCheckin()">今日签到（+10分）</button>
+  <h2 style="font-size:16px;margin-bottom:12px;color:#ffbc49;">每日签到</h2>
+  <div class="tip">每天签到 +10积分，北京时间0点重置</div>
+  <button onclick="dailyCheckin()">今日签到</button>
   <div id="checkinTip" class="tip"></div>
 </div>
 <div class="card">
-  <h2 style="font-size:16px;margin-bottom:12px;color:#ffbc49;font-weight:600;">兑换权益</h2>
+  <h2 style="font-size:16px;margin-bottom:12px;color:#ffbc49;">权益兑换</h2>
   <div class="tip">催更 -100积分｜剧情预测 -30积分（猜对额外+20）</div>
-  <button onclick="exchange('urge')">兑换催更（-100）</button>
-  <button onclick="exchange('predict')">剧情预测（-30）</button>
-  <div class="tip" style="margin-top:10px;color:#ffaa2b;">填完问卷后，点下面按钮申请积分，站长审核通过就到账！</div>
-  <button style="background:#22cc66;color:#000;" onclick="applyPoints()">问卷领积分（+60，待审核）</button>
+  <button onclick="exchange('urge')">兑换催更</button>
+  <button onclick="exchange('predict')">剧情预测</button>
 </div>
 <div class="card">
-  <h2 style="font-size:16px;margin-bottom:12px;color:#ffbc49;font-weight:600;">排行榜</h2>
+  <h2 style="font-size:16px;margin-bottom:12px;color:#ffbc49;">积分排行榜</h2>
   <div id="rankBox"><div class="empty">加载中...</div></div>
   <button class="sec" onclick="loadRank()">刷新榜单</button>
 </div>
 
-<div id="adminSection" style="display:none;">
+<div id="adminSection">
   <div class="card" style="border:2px solid #ff4444;">
-    <h2 style="font-size:16px;margin-bottom:12px;color:#ff6666;font-weight:600;">管理员后台</h2>
-    <div class="tip" style="color:#ff8888;">只有站长能用，其他人不要进这里！</div>
-    <div style="margin:10px 0;">
-      <input id="searchInput" placeholder="输入昵称搜索用户" oninput="renderAdminList()" />
-    </div>
+    <h2 style="font-size:16px;margin-bottom:12px;color:#ff6666;">管理员后台</h2>
+    <div class="tip" style="color:#ff8888;">仅限站长使用</div>
+    <input id="searchInput" placeholder="输入昵称搜索用户" oninput="renderAdminList()">
     <div id="adminUserList" style="max-height:300px;overflow-y:auto;margin:10px 0;"></div>
     <div id="editPanel" style="display:none;background:#272735;padding:12px;border-radius:8px;margin:10px 0;">
       <div style="margin-bottom:8px;font-weight:600;" id="editUserName">用户：</div>
       <div style="margin-bottom:8px;">当前积分：<span id="editUserPoints" style="color:#ffaa2b;font-weight:700;">0</span></div>
-      <input id="pointsInput" type="number" placeholder="输入要加/减的积分数量" style="margin-bottom:8px;" />
-      <div style="font-size:13px;color:#999;margin-bottom:8px;">正数=加积分，负数=减积分</div>
+      <input id="pointsInput" type="number" placeholder="加减积分（正数加，负数减）">
       <button onclick="savePoints()">确认修改</button>
       <button class="sec" onclick="closeEdit()">取消</button>
     </div>
     <div style="margin:15px 0;padding-top:15px;border-top:1px solid #444;">
-      <div style="font-weight:600;margin-bottom:10px;color:#ffaa2b;">待审核的积分申请</div>
+      <div style="font-weight:600;margin-bottom:10px;color:#ffaa2b;">待审核积分申请</div>
       <div id="pendingList" style="max-height:250px;overflow-y:auto;">
-        <div class="empty">暂无待审核申请</div>
+        <div class="empty">暂无申请</div>
       </div>
-      <button class="sec" onclick="loadPending()" style="margin-top:8px;">刷新申请列表</button>
+      <button class="sec" onclick="loadPending()">刷新申请</button>
     </div>
     <button class="sec" onclick="loadAdminList()">刷新用户列表</button>
-    <button class="sec" onclick="logoutAdmin()">退出管理员模式</button>
+    <button class="sec" onclick="logoutAdmin()">退出管理员</button>
   </div>
 </div>
 <div style="text-align:center;margin-top:20px;padding:10px;">
@@ -265,6 +261,16 @@ button.sec{background:#3a3a48;color:#fff;}
 </div>
 
 <script>
+// ✅ 放在最前面，修复时区签到BUG
+function getLocalDateStr(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+// ========== 你给的这段原样保留，一点没改 ==========
 const DRAMA_LIST = [
   {
     dramaId: "drama01",
@@ -282,10 +288,10 @@ const DRAMA_LIST = [
     ]
   }
 ];
+// ==================================================
 
 let currentDrama = null;
 
-//点击集数，新开标签打开网盘分享页
 function openVideoModal(src){
   window.open(src,"_blank");
 }
@@ -528,14 +534,14 @@ async function refreshMyPoint() {
   if(!data||data.length===0){showMsg("读取积分失败",false);return;}
   const me=data[0];
   document.getElementById("myInfo").innerHTML=`昵称：${me.nickname}<br>积分：<span class="me-points">${me.points}</span>`;
-  const today = getLocalDateStr(); // 改这里
+  const today = getLocalDateStr();
   const tipBox=document.getElementById("checkinTip");
   tipBox.innerText= me.last_checkin===today?"今天已经签到过啦，明天再来吧！":"";
 }
 
 async function dailyCheckin() {
   if(!userId){showMsg("请先入场登记昵称！",false);return;}
-  const today = getLocalDateStr(); // 改这里
+  const today = getLocalDateStr();
   const res=await apiFetch(API_URL+"/users?select=points,last_checkin&id=eq."+userId,{});
   const data=await res.json();
   if(!data||data.length===0){showMsg("读取失败，请刷新重试",false);return;}
@@ -543,7 +549,11 @@ async function dailyCheckin() {
   if(user.last_checkin===today){showMsg("今天已经签到过了，明天再来吧！",false);return;}
   const newPoints=user.points+10;
   const res2=await apiFetch(API_URL+"/users?id=eq."+userId,{method:"PATCH",body:JSON.stringify({points:newPoints,last_checkin:today})});
-  if(res2.ok){showMsg("签到成功！+10积分",true);refreshMyPoint();loadRank();}
+  if(res2.ok){
+    showMsg("签到成功！+10积分",true);
+    refreshMyPoint();
+    loadRank();
+  }
   else showMsg("签到失败，请重试",false);
 }
 
