@@ -528,14 +528,14 @@ async function refreshMyPoint() {
   if(!data||data.length===0){showMsg("读取积分失败",false);return;}
   const me=data[0];
   document.getElementById("myInfo").innerHTML=`昵称：${me.nickname}<br>积分：<span class="me-points">${me.points}</span>`;
-  const today=new Date().toISOString().split('T')[0];
+  const today = getLocalDateStr(); // 改这里
   const tipBox=document.getElementById("checkinTip");
   tipBox.innerText= me.last_checkin===today?"今天已经签到过啦，明天再来吧！":"";
 }
 
 async function dailyCheckin() {
   if(!userId){showMsg("请先入场登记昵称！",false);return;}
-  const today=new Date().toISOString().split('T')[0];
+  const today = getLocalDateStr(); // 改这里
   const res=await apiFetch(API_URL+"/users?select=points,last_checkin&id=eq."+userId,{});
   const data=await res.json();
   if(!data||data.length===0){showMsg("读取失败，请刷新重试",false);return;}
