@@ -2,10 +2,9 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>短剧粉丝站 - 外卖之富</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>"/>
-<!-- DPlayer 播放器引入 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>短剧粉丝内测平台</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.css">
 <script src="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.js"></script>
 <style>
@@ -19,6 +18,36 @@ body{
   margin:0 auto;
   min-height:100vh;
 }
+.page-header{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:12px;
+  margin-bottom:20px;
+}
+.user-top-area{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.user-top-area input{
+  width:auto;
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid #3a3a48;
+  background:#2c2c38;
+  color:#fff;
+  font-size:14px;
+  outline:none;
+}
+.score-top{
+  color:#ffaa2b;
+  font-weight:bold;
+  font-size:15px;
+}
+
 h1{
   text-align:center;
   color:#ffaa2b;
@@ -41,29 +70,92 @@ h1{
   margin-bottom:14px;
   border:1px solid #2e2e3a;
 }
-.drama-card{
+
+.view-list{display:block;}
+.view-detail{display:none;}
+.back-btn{
+  background:#3a3a48;
+  color:#fff;
+  border:none;
+  padding:8px 14px;
+  border-radius:8px;
+  cursor:pointer;
+  margin-bottom:16px;
+}
+.drama-item-card{
   background:#1f1f27;
-  border-radius:12px;
-  padding:18px;
-  margin-bottom:14px;
   border:1px solid #2e2e3a;
+  border-radius:12px;
+  padding:20px;
+  cursor:pointer;
+  transition:0.2s;
 }
-.drama-name{
-  font-size:18px;
-  font-weight:700;
+.drama-item-card:hover{
+  border-color:#ff8822;
+  background:#272735;
+}
+.drama-item-name{
+  font-size:19px;
   color:#ffaa2b;
-  margin-bottom:6px;
+  font-weight:bold;
+  margin-bottom:8px;
 }
-.drama-desc{
+.drama-item-desc{
   font-size:13px;
-  color:#999;
-  margin-bottom:14px;
+  color:#aaa;
   line-height:1.5;
 }
+
+/* ==========新增样式：总封面 + 小方块剧集网格 ========== */
+.drama-main-cover{
+  width:100%;
+  border-radius:10px;
+  margin-bottom:14px;
+  display:block;
+  max-height:220px;
+  object-fit:cover;
+}
+.episodes-grid{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:10px;
+  margin-top:12px;
+}
+.episode-mini{
+  background:#272735;
+  border:1px solid #2e2e3a;
+  border-radius:10px;
+  padding:8px;
+  cursor:pointer;
+  transition:0.2s;
+}
+.episode-mini:hover{
+  border-color:#ff8822;
+  background:#2f2f3d;
+}
+.episode-mini .cover-small{
+  width:100%;
+  aspect-ratio:16/9;
+  object-fit:cover;
+  border-radius:6px;
+  display:block;
+  margin-bottom:6px;
+}
+.episode-mini .ep-mini-title{
+  font-size:12px;
+  color:#ffcc66;
+  line-height:1.4;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+
 .btn-row{
   display:flex;
   gap:8px;
   flex-wrap:wrap;
+  margin-top:18px;
 }
 .btn-row a, .btn-row button{
   flex:1;
@@ -77,9 +169,9 @@ h1{
   border:none;
   cursor:pointer;
 }
-.watch-btn{background:#ff7720;color:#000;}
 .backup-btn{background:#2994ff;color:#fff;}
 .feedback-btn{background:#3a3a48;color:#fff;}
+
 input{
   width:100%;
   padding:12px 14px;
@@ -107,6 +199,7 @@ button{
 }
 button:hover{opacity:.9;}
 button.sec{background:#3a3a48;color:#fff;}
+
 .rank-item{
   padding:10px 0;
   border-bottom:1px solid #2e2e3a;
@@ -143,7 +236,6 @@ button.sec{background:#3a3a48;color:#fff;}
 .empty{text-align:center;color:#666;padding:20px 0;font-size:14px;}
 .me-points{font-size:20px;color:#ffaa2b;font-weight:700;}
 
-/* 播放弹窗样式 */
 .video-modal{
   position:fixed;
   top:0;left:0;
@@ -180,48 +272,45 @@ button.sec{background:#3a3a48;color:#fff;}
 </style>
 </head>
 <body>
-
-<h1>🎬 短剧粉丝站</h1>
-
-<!-- ========== 播放弹窗（点播放按钮才会弹出来） ========== -->
-<div class="video-modal" id="videoModal">
-  <button class="video-close" onclick="closeVideo()">×</button>
-  <div id="player"></div>
-  <div class="video-tip">
-    如果一直转圈加载，可以点下面的「备用云盘」按钮去123云盘看；或者切换手机流量试试~
+<div class="page-header">
+  <div class="user-top-area">
+    <input id="nickTopInput" placeholder="输入昵称" maxlength="20" />
+    <div class="score-top">积分：<span id="topScoreText">--</span></div>
   </div>
 </div>
 
-<!-- ========== 剧集列表 ========== -->
-<div class="section-title">我的剧集</div>
-<div id="dramaList"></div>
+<h1>🎬 短剧粉丝内测平台</h1>
 
-<!-- ========== 积分系统 ========== -->
+<div id="viewList" class="view-list">
+  <div class="section-title">所有短剧</div>
+  <div id="dramaListWrap"></div>
+</div>
+
+<div id="viewDetail" class="view-detail">
+  <button class="back-btn" onclick="goBackList()">← 返回短剧列表</button>
+  <div id="detailContent"></div>
+</div>
+
 <div class="section-title">积分中心</div>
-
 <div id="msg"></div>
-
 <div class="card">
   <h2 style="font-size:16px;margin-bottom:12px;color:#ffbc49;font-weight:600;">入场登记</h2>
-  <input id="nickInput" placeholder="输入你的昵称（最多20字）" maxlength="20"/>
+  <input id="nickInput" placeholder="输入你的昵称（最多20字）" maxlength="20" />
   <button onclick="registerNick()">确认入场</button>
   <button class="sec" onclick="testDb()">测试数据库连接</button>
   <div class="tip">昵称不能重复，注册成功后获得初始积分</div>
 </div>
-
 <div class="card">
   <h2 style="font-size:16px;margin-bottom:12px;color:#ffbc49;font-weight:600;">我的账户</h2>
   <div id="myInfo" style="font-size:15px;line-height:1.8;">暂未入场</div>
   <button class="sec" onclick="refreshMyPoint()" style="margin-top:8px;">刷新积分</button>
 </div>
-
 <div class="card">
   <h2 style="font-size:16px;margin-bottom:12px;color:#ffbc49;font-weight:600;">每日签到</h2>
   <div class="tip">每天签到一次，领10积分！</div>
   <button style="background:#ffbb33;color:#000;" onclick="dailyCheckin()">今日签到（+10分）</button>
   <div id="checkinTip" class="tip"></div>
 </div>
-
 <div class="card">
   <h2 style="font-size:16px;margin-bottom:12px;color:#ffbc49;font-weight:600;">兑换权益</h2>
   <div class="tip">催更 -100积分｜剧情预测 -30积分（猜对额外+20）</div>
@@ -230,35 +319,28 @@ button.sec{background:#3a3a48;color:#fff;}
   <div class="tip" style="margin-top:10px;color:#ffaa2b;">填完问卷后，点下面按钮申请积分，站长审核通过就到账！</div>
   <button style="background:#22cc66;color:#000;" onclick="applyPoints()">问卷领积分（+60，待审核）</button>
 </div>
-
 <div class="card">
   <h2 style="font-size:16px;margin-bottom:12px;color:#ffbc49;font-weight:600;">排行榜</h2>
   <div id="rankBox"><div class="empty">加载中...</div></div>
   <button class="sec" onclick="loadRank()">刷新榜单</button>
 </div>
 
-<!-- ========== 管理员后台（隐藏） ========== -->
 <div id="adminSection" style="display:none;">
   <div class="card" style="border:2px solid #ff4444;">
     <h2 style="font-size:16px;margin-bottom:12px;color:#ff6666;font-weight:600;">管理员后台</h2>
     <div class="tip" style="color:#ff8888;">只有站长能用，其他人不要进这里！</div>
-
     <div style="margin:10px 0;">
-      <input id="searchInput" placeholder="输入昵称搜索用户" oninput="renderAdminList()"/>
+      <input id="searchInput" placeholder="输入昵称搜索用户" oninput="renderAdminList()" />
     </div>
-
     <div id="adminUserList" style="max-height:300px;overflow-y:auto;margin:10px 0;"></div>
-
     <div id="editPanel" style="display:none;background:#272735;padding:12px;border-radius:8px;margin:10px 0;">
       <div style="margin-bottom:8px;font-weight:600;" id="editUserName">用户：</div>
       <div style="margin-bottom:8px;">当前积分：<span id="editUserPoints" style="color:#ffaa2b;font-weight:700;">0</span></div>
-      <input id="pointsInput" type="number" placeholder="输入要加/减的积分数量" style="margin-bottom:8px;"/>
+      <input id="pointsInput" type="number" placeholder="输入要加/减的积分数量" style="margin-bottom:8px;" />
       <div style="font-size:13px;color:#999;margin-bottom:8px;">正数=加积分，负数=减积分（比如填 20 就是加20分，填 -10 就是减10分）</div>
       <button onclick="savePoints()">确认修改</button>
       <button class="sec" onclick="closeEdit()">取消</button>
     </div>
-
-    <!-- 待审核申请 -->
     <div style="margin:15px 0;padding-top:15px;border-top:1px solid #444;">
       <div style="font-weight:600;margin-bottom:10px;color:#ffaa2b;">待审核的积分申请</div>
       <div id="pendingList" style="max-height:250px;overflow-y:auto;">
@@ -266,605 +348,360 @@ button.sec{background:#3a3a48;color:#fff;}
       </div>
       <button class="sec" onclick="loadPending()" style="margin-top:8px;">刷新申请列表</button>
     </div>
-
     <button class="sec" onclick="loadAdminList()">刷新用户列表</button>
     <button class="sec" onclick="logoutAdmin()">退出管理员模式</button>
   </div>
 </div>
 
-<!-- 隐藏的管理员入口 -->
 <div style="text-align:center;margin-top:20px;padding:10px;">
   <a href="javascript:void(0)" onclick="showAdminLogin()" style="font-size:12px;color:#555;text-decoration:none;">管理员入口</a>
 </div>
 
+<div class="video-modal" id="videoModal">
+  <button class="video-close" onclick="closeVideo()">×</button>
+  <div id="player"></div>
+  <div class="video-tip">
+    如果易运盘加载失败，可以点【备用123云盘】按钮；切换手机流量试试~
+  </div>
+</div>
+
 <script>
-// ==========================================
-// 【你只需要改这里！】剧集配置
-// 以后加新集，就在下面episodes里加一行就行
-// ==========================================
 const DRAMAS = [
   {
     name: "外卖之富",
     desc: "外卖小哥意外获得暴富系统，从此走上人生巅峰",
     feedbackUrl: "https://yfdexmbo.jsjform.com/f/ytLqvX",
-    backupUrl: "https://4001418454.share.123pan.cn/123pan/JSWZMh-UY9W3", // 原来的123云盘备用链接
+    backupUrl: "https://4001418454.share.123pan.cn/123pan/JSWZMh-UY9W3",
+    cover:"https://id5uuto33o40lc.1yunpan.com/%E5%A4%96%E5%8D%96%E4%B9%8B%E5%AF%8C/%E5%B0%81%E9%9D%A2/%E5%A4%96%E5%8D%96%E4%B9%8B%E5%AF%8C.png",
     episodes: [
       {
         title: "第一集：系统激活",
-        videoUrl: "https://id5uuto33o40lc.1yunpan.com/%E5%A4%96%E5%8D%96%E4%B9%8B%E5%AF%8C/%E8%A7%86%E9%A2%91/%E7%AC%AC%E4%B8%80%E9%9B%86%EF%BC%9A%E7%B3%BB%E7%BB%9F%E6%BF%80%E6%B4%BB.mp4"
+        videoUrl: "https://id5uuto33o40lc.1yunpan.com/%E5%A4%96%E5%8D%96%E4%B9%8B%E5%AF%8C/%E8%A7%86%E9%A2%91/%E7%AC%AC%E4%B8%80%E9%9B%86%EF%BC%9A%E7%B3%BB%E7%BB%9F%E6%BF%80%E6%B4%BB.mp4",
+        cover:"https://id5uuto33o40lc.1yunpan.com/%E5%A4%96%E5%8D%96%E4%B9%8B%E5%AF%8C/%E5%B0%81%E9%9D%A2/%E5%A4%96%E5%8D%96%E4%B9%8B%E5%AF%8C-%E7%AC%AC%E4%B8%80%E9%9B%86.png"
       }
-      // 以后加第二集，就在上面加逗号，复制一段改标题和链接就行
     ]
   }
 ];
-// ==========================================
 
-let dp = null; // 播放器实例
+let dp = null;
 
-// 渲染剧集列表
-function renderDramas() {
-  const box = document.getElementById("dramaList");
+function renderDramaList(){
+  const wrap = document.getElementById("dramaListWrap");
   let html = "";
-  DRAMAS.forEach((drama, i) => {
-    html += '<div class="drama-card">'
-      + '<div class="drama-name">' + drama.name + '</div>'
-      + '<div class="drama-desc">' + drama.desc + '</div>';
-    
-    // 渲染每一集的播放按钮
-    drama.episodes.forEach((ep, j) => {
-      html += '<div style="margin:10px 0;padding:10px;background:#272735;border-radius:8px;">'
-        + '<div style="font-size:14px;margin-bottom:8px;color:#ffcc66;">' + ep.title + '</div>'
-        + '<div class="btn-row">'
-        +   '<button class="watch-btn" onclick="openVideo(\'' + ep.videoUrl + '\')">▶ 在线播放</button>'
-        +   '<a class="backup-btn" href="' + drama.backupUrl + '" target="_blank">备用云盘</a>'
-        + '</div>'
-        + '</div>';
-    });
-
-    html += '<div class="btn-row" style="margin-top:10px;">'
-      +   '<a class="feedback-btn" href="' + drama.feedbackUrl + '" target="_blank">反馈/问卷</a>'
-      + '</div>'
-      + '</div>';
+  DRAMAS.forEach((drama,idx)=>{
+    html += `<div class="drama-item-card" onclick="openDramaDetail(${idx})">
+      <div class="drama-item-name">${drama.name}</div>
+      <div class="drama-item-desc">${drama.desc}</div>
+      <div style="margin-top:10px;font-size:12px;color:#ff8822;">点击进入剧集 →</div>
+    </div>`;
   });
-  box.innerHTML = html;
+  wrap.innerHTML = html;
 }
 
-// 打开播放弹窗
+function openDramaDetail(index){
+  const drama = DRAMAS[index];
+  const detailBox = document.getElementById("detailContent");
+  let html = "";
+  if(drama.cover){
+    html += `<img class="drama-main-cover" src="${drama.cover}" alt="${drama.name}">`;
+  }
+  html += `
+    <h2 style="color:#ffaa2b;margin-bottom:8px;">${drama.name}</h2>
+    <div style="font-size:13px;color:#aaa;margin-bottom:16px;">${drama.desc}</div>
+    <div style="font-size:14px;color:#ffcc66;margin-bottom:4px;">剧集列表</div>
+    <div class="episodes-grid">
+  `;
+  drama.episodes.forEach((ep, i)=>{
+    html += `
+      <div class="episode-mini" onclick="openVideo('${ep.videoUrl}')">
+        <img class="cover-small" src="${ep.cover}" alt="${ep.title}">
+        <div class="ep-mini-title">第${i + 1}集 ${ep.title}</div>
+      </div>
+    `;
+  });
+  html += `
+    </div>
+    <div class="btn-row">
+      <a class="backup-btn" href="${drama.backupUrl}" target="_blank">备用123云盘</a>
+      <a class="feedback-btn" href="${drama.feedbackUrl}" target="_blank">反馈/问卷</a>
+    </div>
+  `;
+  detailBox.innerHTML = html;
+  document.getElementById("viewList").style.display = "none";
+  document.getElementById("viewDetail").style.display = "block";
+}
+
+function goBackList(){
+  document.getElementById("viewList").style.display = "block";
+  document.getElementById("viewDetail").style.display = "none";
+}
+
 function openVideo(url) {
   const modal = document.getElementById("videoModal");
   modal.classList.add("show");
-  document.body.style.overflow = "hidden"; // 锁住背景滚动
-
-  // 初始化播放器
+  document.body.style.overflow = "hidden";
   if(dp) { dp.destroy(); dp = null; }
   dp = new DPlayer({
     container: document.getElementById("player"),
-    video: {
-      url: url,
-      type: "auto"
-    },
-    preload: "auto", // 自动预加载缓冲
-    autoplay: true,
-    theme: "#ff8822",
-    lang: "zh-cn"
+    video: { url:url, type:"auto" },
+    preload:"auto",
+    autoplay:true,
+    theme:"#ff8822",
+    lang:"zh-cn"
   });
 }
-
-// 关闭播放弹窗
 function closeVideo() {
   const modal = document.getElementById("videoModal");
   modal.classList.remove("show");
   document.body.style.overflow = "";
   if(dp) { dp.destroy(); dp = null; }
 }
-
-// 点弹窗背景也能关闭
-document.getElementById("videoModal").addEventListener("click", function(e) {
-  if(e.target === this) closeVideo();
+document.getElementById("videoModal").addEventListener("click", function(e){
+  if(e.target===this) closeVideo();
 });
 
-// ========== Supabase 配置（原来的一点都没动） ==========
 const API_URL = "https://famruqybqslcslkckpyk.supabase.co/rest/v1";
 const API_KEY = "sb_publishable_iie6HBAS9jm48lD7zZ3Zug_CgXYXVLf";
-
 let userId = localStorage.getItem("waiman_uid") || null;
-
 const headers = {
   "apikey": API_KEY,
   "Authorization": "Bearer " + API_KEY,
   "Content-Type": "application/json"
 };
-
-// ========== 带超时和自动重试的请求函数 ==========
 async function apiFetch(url, options = {}, retryCount = 2) {
-  // 10秒超时
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-  try {
-    const res = await fetch(url, {
-      ...options,
-      headers: headers,
-      signal: controller.signal
-    });
+  const timeoutId = setTimeout(()=>controller.abort(),10000);
+  try{
+    const res = await fetch(url, {...options, headers, signal:controller.signal});
     clearTimeout(timeoutId);
     return res;
-  } catch(e) {
+  }catch(e){
     clearTimeout(timeoutId);
-    // 网络错误，自动重试
-    if(retryCount > 0) {
-      await new Promise(r => setTimeout(r, 1000)); // 等1秒再试
-      return apiFetch(url, options, retryCount - 1);
+    if(retryCount>0){
+      await new Promise(r=>setTimeout(r,1000));
+      return apiFetch(url,options,retryCount-1);
     }
-    throw e; // 重试完还是失败，抛出错误
+    throw e;
   }
 }
-
-function showMsg(text, isOk) {
-  const box = document.getElementById("msg");
-  box.innerText = text;
-  box.className = isOk ? "msg-ok" : "msg-err";
-  box.style.display = "block";
-  setTimeout(()=>{ box.style.display="none"; }, 3000);
+function showMsg(text,isOk){
+  const box=document.getElementById("msg");
+  box.innerText=text;
+  box.className=isOk?"msg-ok":"msg-err";
+  box.style.display="block";
+  setTimeout(()=>box.style.display="none",3000);
+}
+async function testDb(){
+  showMsg("正在测试连接...",true);
+  try{
+    const res=await apiFetch(API_URL+"/users?select=id&limit=1");
+    if(res.ok){
+      const d=await res.json();
+      showMsg("数据库连接成功！当前有 "+d.length+" 条数据",true);
+    }else showMsg("连接失败，错误码："+res.status,false);
+  }catch(e){ showMsg("连接失败："+e.message+"（可能是网络问题，换手机流量试试）",false); }
 }
 
-// 测试数据库连接
-async function testDb() {
-  showMsg("正在测试连接...", true);
-  try {
-    const res = await apiFetch(API_URL + "/users?select=id&limit=1", {
-      headers: headers
-    });
-    if(res.ok) {
-      const data = await res.json();
-      showMsg("数据库连接成功！当前有 " + data.length + " 条数据", true);
-    } else {
-      showMsg("连接失败，错误码：" + res.status, false);
-    }
-  } catch(e) {
-    console.error("测试失败：", e);
-    showMsg("连接失败：" + e.message + "（可能是网络问题，换手机流量试试）", false);
-  }
-}
-
-// ========== 管理员后台（原来的一点都没动） ==========
-const ADMIN_PASSWORD = "woaiyudian0325"; // 管理员密码
+const ADMIN_PASSWORD = "woaiyudian0325";
 let adminUserList = [];
-let editingUserId = null;
-
-function showAdminLogin() {
-  const pwd = prompt("请输入管理员密码：");
-  if(pwd === ADMIN_PASSWORD) {
-    document.getElementById("adminSection").style.display = "block";
-    loadAdminList();
-    loadPending();
-    showMsg("管理员模式已开启", true);
-  } else if(pwd !== null) {
-    showMsg("密码错误！", false);
-  }
+let editingUserId=null;
+function showAdminLogin(){
+  const pwd=prompt("请输入管理员密码：");
+  if(pwd===ADMIN_PASSWORD){
+    document.getElementById("adminSection").style.display="block";
+    loadAdminList();loadPending();showMsg("管理员模式已开启",true);
+  }else if(pwd!==null) showMsg("密码错误！",false);
 }
-
-function logoutAdmin() {
-  document.getElementById("adminSection").style.display = "none";
-  document.getElementById("editPanel").style.display = "none";
-  editingUserId = null;
+function logoutAdmin(){
+  document.getElementById("adminSection").style.display="none";
+  document.getElementById("editPanel").style.display="none";
+  editingUserId=null;
 }
-
-async function loadAdminList() {
-  try {
-    const res = await apiFetch(API_URL + "/users?select=id,nickname,points&order=points.desc", {
-      headers: headers
-    });
-    adminUserList = await res.json();
-    renderAdminList();
-  } catch(e) {
-    showMsg("加载用户列表失败", false);
-  }
+async function loadAdminList(){
+  try{
+    const res=await apiFetch(API_URL+"/users?select=id,nickname,points&order=points.desc");
+    adminUserList=await res.json();renderAdminList();
+  }catch(e){ showMsg("加载用户列表失败",false); }
 }
-
-function renderAdminList() {
-  const keyword = document.getElementById("searchInput").value.trim();
-  let list = adminUserList;
-  if(keyword) {
-    list = list.filter(u => u.nickname.includes(keyword));
-  }
-  const box = document.getElementById("adminUserList");
-  if(list.length === 0) {
-    box.innerHTML = '<div class="empty">没有找到用户</div>';
-    return;
-  }
-  let html = "";
-  list.forEach(u => {
-    html += '<div class="rank-item" style="cursor:pointer;" onclick="editUser(\'' + u.id + '\', \'' + u.nickname + '\', ' + u.points + ')">'
-      + '<span>' + u.nickname + '</span>'
-      + '<span style="color:#ffaa2b;font-weight:600;">' + u.points + '分</span>'
-      + '</div>';
+function renderAdminList(){
+  const kw=document.getElementById("searchInput").value.trim();
+  let list=adminUserList;
+  if(kw) list=list.filter(u=>u.nickname.includes(kw));
+  const box=document.getElementById("adminUserList");
+  if(list.length===0){ box.innerHTML='<div class="empty">没有找到用户</div>';return; }
+  let html="";
+  list.forEach(u=>{
+    html+='<div class="rank-item" style="cursor:pointer;" onclick="editUser(\''+u.id+'\',\''+u.nickname+'\','+u.points+')">'+
+    '<span>'+u.nickname+'</span><span style="color:#ffaa2b;font-weight:600;">'+u.points+'分</span></div>';
   });
-  box.innerHTML = html;
+  box.innerHTML=html;
+}
+function editUser(id,name,points){
+  editingUserId=id;
+  document.getElementById("editUserName").innerText="用户："+name;
+  document.getElementById("editUserPoints").innerText=points;
+  document.getElementById("pointsInput").value="";
+  document.getElementById("editPanel").style.display="block";
+}
+function closeEdit(){
+  document.getElementById("editPanel").style.display="none";editingUserId=null;
+}
+async function savePoints(){
+  if(!editingUserId)return;
+  const ch=parseInt(document.getElementById("pointsInput").value);
+  if(isNaN(ch)){ showMsg("请输入数字！",false);return; }
+  const r1=await apiFetch(API_URL+"/users?select=points&id=eq."+editingUserId);
+  const d1=await r1.json();
+  if(!d1||d1.length===0){ showMsg("用户不存在",false);return; }
+  const np=d1[0].points+ch;
+  const r2=await apiFetch(API_URL+"/users?id=eq."+editingUserId,{method:"PATCH",body:JSON.stringify({points:np})});
+  if(r2.ok){
+    showMsg("修改成功！"+(ch>=0?"加":"减")+Math.abs(ch)+"分",true);
+    closeEdit();loadAdminList();loadRank();refreshMyPoint();
+  }else showMsg("修改失败",false);
 }
 
-function editUser(id, name, points) {
-  editingUserId = id;
-  document.getElementById("editUserName").innerText = "用户：" + name;
-  document.getElementById("editUserPoints").innerText = points;
-  document.getElementById("pointsInput").value = "";
-  document.getElementById("editPanel").style.display = "block";
+async function applyPoints(){
+  if(!userId){ showMsg("请先入场登记昵称！",false);return; }
+  const nick=document.getElementById("nickInput").value.trim();
+  try{
+    const res=await apiFetch(API_URL+"/point_requests",{method:"POST",body:JSON.stringify({user_id:userId,nickname:nick,points:60,reason:"填完问卷领积分",status:"pending"})});
+    if(res.ok) showMsg("申请已提交！等待站长审核通过后到账",true);
+    else showMsg("提交失败，请重试",false);
+  }catch(e){ showMsg("网络错误，提交失败",false); }
 }
-
-function closeEdit() {
-  document.getElementById("editPanel").style.display = "none";
-  editingUserId = null;
-}
-
-async function savePoints() {
-  if(!editingUserId) return;
-  const change = parseInt(document.getElementById("pointsInput").value);
-  if(isNaN(change)) {
-    showMsg("请输入数字！", false);
-    return;
-  }
-
-  // 先查当前积分
-  const res = await apiFetch(API_URL + "/users?select=points&id=eq." + editingUserId, {
-    headers: headers
-  });
-  const data = await res.json();
-  if(!data || data.length === 0) {
-    showMsg("用户不存在", false);
-    return;
-  }
-  const newPoints = data[0].points + change;
-
-  // 更新积分
-  const res2 = await apiFetch(API_URL + "/users?id=eq." + editingUserId, {
-    method: "PATCH",
-    headers: headers,
-    body: JSON.stringify({ points: newPoints })
-  });
-
-  if(res2.ok) {
-    showMsg("修改成功！" + (change >= 0 ? "加" : "减") + Math.abs(change) + "分", true);
-    closeEdit();
-    loadAdminList();
-    loadRank();
-    refreshMyPoint();
-  } else {
-    showMsg("修改失败", false);
-  }
-}
-
-// ========== 积分申请功能（原来的一点都没动） ==========
-
-// 用户端：提交问卷领积分申请
-async function applyPoints() {
-  if(!userId) {
-    showMsg("请先入场登记昵称！", false);
-    return;
-  }
-  const nick = document.getElementById("nickInput").value.trim();
-  try {
-    const res = await apiFetch(API_URL + "/point_requests", {
-      method: "POST",
-      headers: headers,
-      body: JSON.stringify({
-        user_id: userId,
-        nickname: nick,
-        points: 60,
-        reason: "填完问卷领积分",
-        status: "pending"
-      })
+async function loadPending(){
+  try{
+    const res=await apiFetch(API_URL+"/point_requests?select=*&status=eq.pending&order=created_at.desc");
+    const data=await res.json();
+    const box=document.getElementById("pendingList");
+    if(!data||data.length===0){ box.innerHTML='<div class="empty">暂无待审核申请</div>';return; }
+    let html="";
+    data.forEach(item=>{
+      html+='<div style="background:#272735;padding:10px;border-radius:6px;margin:6px 0;">'+
+      '<div style="font-weight:600;margin-bottom:4px;">'+item.nickname+'</div>'+
+      '<div style="font-size:13px;color:#999;margin-bottom:6px;">申请+'+item.points+'分｜'+item.reason+'</div>'+
+      '<button style="background:#22cc66;color:#000;padding:6px 12px;font-size:13px;" onclick="approveRequest(\''+item.id+'\',\''+item.user_id+'\','+item.points+')">通过</button>'+
+      '<button class="sec" style="padding:6px 12px;font-size:13px;" onclick="rejectRequest(\''+item.id+'\')">拒绝</button></div>';
     });
-    if(res.ok) {
-      showMsg("申请已提交！等待站长审核通过后到账", true);
-    } else {
-      showMsg("提交失败，请重试", false);
-    }
-  } catch(e) {
-    showMsg("网络错误，提交失败", false);
+    box.innerHTML=html;
+  }catch(e){ document.getElementById("pendingList").innerHTML='<div class="empty">加载失败</div>'; }
+}
+async function approveRequest(reqId,uid,points){
+  await apiFetch(API_URL+"/point_requests?id=eq."+reqId,{method:"PATCH",body:JSON.stringify({status:"approved"})});
+  const r=await apiFetch(API_URL+"/users?select=points&id=eq."+uid);
+  const d=await r.json();
+  if(d&&d.length>0){
+    await apiFetch(API_URL+"/users?id=eq."+uid,{method:"PATCH",body:JSON.stringify({points:d[0].points+points})});
   }
+  showMsg("已通过！给用户加了"+points+"分",true);
+  loadPending();loadAdminList();loadRank();
+}
+async function rejectRequest(reqId){
+  await apiFetch(API_URL+"/point_requests?id=eq."+reqId,{method:"PATCH",body:JSON.stringify({status:"rejected"})});
+  showMsg("已拒绝",true);loadPending();
 }
 
-// 管理员：加载待审核申请
-async function loadPending() {
-  try {
-    const res = await apiFetch(API_URL + "/point_requests?select=*&status=eq.pending&order=created_at.desc", {
-      headers: headers
-    });
-    const data = await res.json();
-    const box = document.getElementById("pendingList");
-    if(!data || data.length === 0) {
-      box.innerHTML = '<div class="empty">暂无待审核申请</div>';
-      return;
+async function registerNick(){
+  const nick=document.getElementById("nickInput").value.trim();
+  if(!nick){ showMsg("昵称不能为空",false);return; }
+  document.getElementById("nickTopInput").value=nick;
+  try{
+    const res=await apiFetch(API_URL+"/users?select=id,points&nickname=eq."+encodeURIComponent(nick));
+    if(!res.ok){ showMsg("数据库连接失败（错误码："+res.status+"）",false);return; }
+    const data=await res.json();
+    if(data&&data.length>0){
+      userId=data[0].id;localStorage.setItem("waiman_uid",userId);
+      showMsg("欢迎回来："+nick,true);refreshMyPoint();loadRank();return;
     }
-    let html = "";
-    data.forEach(item => {
-      html += '<div style="background:#272735;padding:10px;border-radius:6px;margin:6px 0;">'
-        + '<div style="font-weight:600;margin-bottom:4px;">' + item.nickname + '</div>'
-        + '<div style="font-size:13px;color:#999;margin-bottom:6px;">申请+' + item.points + '分｜' + item.reason + '</div>'
-        + '<button style="background:#22cc66;color:#000;padding:6px 12px;font-size:13px;" onclick="approveRequest(\'' + item.id + '\', \'' + item.user_id + '\', ' + item.points + ')">通过</button>'
-        + '<button class="sec" style="padding:6px 12px;font-size:13px;" onclick="rejectRequest(\'' + item.id + '\')">拒绝</button>'
-        + '</div>';
-    });
-    box.innerHTML = html;
-  } catch(e) {
-    document.getElementById("pendingList").innerHTML = '<div class="empty">加载失败</div>';
-  }
+    const res2=await apiFetch(API_URL+"/users",{method:"POST",body:JSON.stringify({nickname:nick,points:0})});
+    if(!res2.ok){
+      const err=await res2.text();
+      showMsg("注册失败（"+res2.status+"）："+err.substring(0,50),false);return;
+    }
+    const data2=await res2.json();
+    if(!data2||data2.length===0){ showMsg("注册失败：返回数据为空",false);return; }
+    userId=data2[0].id;localStorage.setItem("waiman_uid",userId);
+    showMsg("注册成功！欢迎「"+nick+"」",true);refreshMyPoint();loadRank();
+  }catch(e){ showMsg("网络错误："+e.message+"（试试换手机流量）",false); }
 }
-
-// 管理员：通过申请
-async function approveRequest(reqId, uid, points) {
-  // 1. 更新申请状态为approved
-  await apiFetch(API_URL + "/point_requests?id=eq." + reqId, {
-    method: "PATCH",
-    headers: headers,
-    body: JSON.stringify({ status: "approved" })
-  });
-
-  // 2. 给用户加积分
-  const res = await apiFetch(API_URL + "/users?select=points&id=eq." + uid, {
-    headers: headers
-  });
-  const data = await res.json();
-  if(data && data.length > 0) {
-    const newPoints = data[0].points + points;
-    await apiFetch(API_URL + "/users?id=eq." + uid, {
-      method: "PATCH",
-      headers: headers,
-      body: JSON.stringify({ points: newPoints })
-    });
-  }
-
-  showMsg("已通过！给用户加了" + points + "分", true);
-  loadPending();
-  loadAdminList();
-  loadRank();
-}
-
-// 管理员：拒绝申请
-async function rejectRequest(reqId) {
-  await apiFetch(API_URL + "/point_requests?id=eq." + reqId, {
-    method: "PATCH",
-    headers: headers,
-    body: JSON.stringify({ status: "rejected" })
-  });
-  showMsg("已拒绝", true);
-  loadPending();
-}
-
-// 入场登记（原来的一点都没动）
-async function registerNick() {
-  const nick = document.getElementById("nickInput").value.trim();
-  if(!nick) {
-    showMsg("昵称不能为空", false);
-    return;
-  }
-
-  try {
-    // 先查有没有这个昵称
-    const res = await apiFetch(API_URL + "/users?select=id,points&nickname=eq." + encodeURIComponent(nick), {
-      headers: headers
-    });
-
-    if(!res.ok) {
-      showMsg("数据库连接失败（错误码：" + res.status + "）", false);
-      return;
-    }
-
-    const data = await res.json();
-
-    if(data && data.length > 0) {
-      userId = data[0].id;
-      localStorage.setItem("waiman_uid", userId);
-      showMsg("欢迎回来：" + nick, true);
-      refreshMyPoint();
-      loadRank();
-      return;
-    }
-
-    // 新建用户，初始0积分
-    const res2 = await apiFetch(API_URL + "/users", {
-      method: "POST",
-      headers: headers,
-      body: JSON.stringify({ nickname: nick, points: 0 })
-    });
-
-    if(!res2.ok) {
-      const errText = await res2.text();
-      showMsg("注册失败（" + res2.status + "）：" + errText.substring(0, 50), false);
-      return;
-    }
-
-    const data2 = await res2.json();
-
-    if(!data2 || data2.length === 0) {
-      showMsg("注册失败：返回数据为空", false);
-      return;
-    }
-
-    userId = data2[0].id;
-    localStorage.setItem("waiman_uid", userId);
-    showMsg("注册成功！欢迎「" + nick + "」", true);
-    refreshMyPoint();
-    loadRank();
-
-  } catch(e) {
-    console.error("出错了：", e);
-    showMsg("网络错误：" + e.message + "（试试换手机流量）", false);
-  }
-}
-
-// 刷新我的积分（原来的一点都没动）
-async function refreshMyPoint() {
+async function refreshMyPoint(){
   if(!userId) return;
-  const res = await apiFetch(API_URL + "/users?select=nickname,points,last_checkin&id=eq." + userId, {
-    headers: headers
-  });
-  const data = await res.json();
-  if(!data || data.length === 0) {
-    showMsg("读取积分失败", false);
-    return;
-  }
-  const me = data[0];
-  document.getElementById("myInfo").innerHTML =
-    "昵称：" + me.nickname + "<br/>" +
-    '积分：<span class="me-points">' + me.points + "</span>";
-
-  // 检查今天是否已签到
-  const today = new Date().toISOString().split('T')[0];
-  const tipBox = document.getElementById("checkinTip");
-  if(me.last_checkin === today) {
-    tipBox.innerText = "今天已经签到过啦，明天再来吧！";
-    tipBox.style.color = "#888";
-  } else {
-    tipBox.innerText = "";
-  }
+  const res=await apiFetch(API_URL+"/users?select=nickname,points,last_checkin&id=eq."+userId);
+  const data=await res.json();
+  if(!data||data.length===0){ showMsg("读取积分失败",false);return; }
+  const me=data[0];
+  document.getElementById("myInfo").innerHTML="昵称："+me.nickname+"<br/>"+'<span class="me-points">'+me.points+"</span> 积分";
+  document.getElementById("nickTopInput").value=me.nickname;
+  document.getElementById("topScoreText").innerText=me.points;
+  const today=new Date().toISOString().split('T')[0];
+  const tip=document.getElementById("checkinTip");
+  if(me.last_checkin===today){ tip.innerText="今天已经签到过啦，明天再来吧！";tip.style.color="#888"; }
+  else tip.innerText="";
 }
-
-// 每日签到（原来的一点都没动）
-async function dailyCheckin() {
-  if(!userId) {
-    showMsg("请先入场登记昵称！", false);
-    return;
-  }
-
-  const today = new Date().toISOString().split('T')[0];
-
-  // 先查当前用户的签到状态和积分
-  const res = await apiFetch(API_URL + "/users?select=points,last_checkin&id=eq." + userId, {
-    headers: headers
-  });
-  const data = await res.json();
-  if(!data || data.length === 0) {
-    showMsg("读取失败，请刷新重试", false);
-    return;
-  }
-
-  const user = data[0];
-
-  // 今天已经签过了
-  if(user.last_checkin === today) {
-    showMsg("今天已经签到过了，明天再来吧！", false);
-    return;
-  }
-
-  // 签到成功：加10分，更新签到日期
-  const newPoints = user.points + 10;
-  const res2 = await apiFetch(API_URL + "/users?id=eq." + userId, {
-    method: "PATCH",
-    headers: headers,
-    body: JSON.stringify({
-      points: newPoints,
-      last_checkin: today
-    })
-  });
-
-  if(res2.ok) {
-    showMsg("签到成功！+10积分", true);
-    refreshMyPoint();
-    loadRank();
-  } else {
-    showMsg("签到失败，请重试", false);
-  }
+async function dailyCheckin(){
+  if(!userId){ showMsg("请先入场登记昵称！",false);return; }
+  const today=new Date().toISOString().split('T')[0];
+  const res=await apiFetch(API_URL+"/users?select=points,last_checkin&id=eq."+userId);
+  const data=await res.json();
+  if(!data||data.length===0){ showMsg("读取失败，请刷新重试",false);return; }
+  const user=data[0];
+  if(user.last_checkin===today){ showMsg("今天已经签到过了，明天再来吧！",false);return; }
+  const newPt=user.points+10;
+  const res2=await apiFetch(API_URL+"/users?id=eq."+userId,{method:"PATCH",body:JSON.stringify({points:newPt,last_checkin:today})});
+  if(res2.ok){ showMsg("签到成功！+10积分",true);refreshMyPoint();loadRank(); }
+  else showMsg("签到失败，请重试",false);
 }
-
-// 兑换（原来的一点都没动）
-async function exchange(type) {
-  if(!userId) {
-    showMsg("请先入场登记昵称！", false);
-    return;
-  }
-  let cost, title;
-  if(type === "urge") { cost = 100; title = "兑换催更"; }
-  else if(type === "predict") { cost = 30; title = "剧情预测"; }
+async function exchange(type){
+  if(!userId){ showMsg("请先入场登记昵称！",false);return; }
+  let cost,title;
+  if(type==="urge"){cost=100;title="兑换催更";}
+  else if(type==="predict"){cost=30;title="剧情预测";}
   else return;
-
-  const res = await apiFetch(API_URL + "/users?select=points&id=eq." + userId, {
-    headers: headers
-  });
-  const data = await res.json();
-  if(!data || data.length === 0) {
-    showMsg("读取积分失败", false);
-    return;
-  }
-  const nowPoints = data[0].points;
-  if(nowPoints < cost) {
-    showMsg("积分不足！还差" + (cost - nowPoints) + "分", false);
-    return;
-  }
-  const newPoint = nowPoints - cost;
-  const res2 = await apiFetch(API_URL + "/users?id=eq." + userId, {
-    method: "PATCH",
-    headers: headers,
-    body: JSON.stringify({ points: newPoint })
-  });
-  if(!res2.ok) {
-    showMsg("兑换失败", false);
-    return;
-  }
-  await apiFetch(API_URL + "/activities", {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify({ user_id: userId, action: title, change: -cost })
-  });
-  showMsg(title + "成功！", true);
-  refreshMyPoint();
-  loadRank();
+  const res=await apiFetch(API_URL+"/users?select=points&id=eq."+userId);
+  const data=await res.json();
+  if(!data||data.length===0){ showMsg("读取积分失败",false);return; }
+  const now=data[0].points;
+  if(now<cost){ showMsg("积分不足！还差"+(cost-now)+"分",false);return; }
+  const np=now-cost;
+  const res2=await apiFetch(API_URL+"/users?id=eq."+userId,{method:"PATCH",body:JSON.stringify({points:np})});
+  if(!res2.ok){ showMsg("兑换失败",false);return; }
+  await apiFetch(API_URL+"/activities",{method:"POST",body:JSON.stringify({user_id:userId,action:title,change:-cost})});
+  showMsg(title+"成功！",true);refreshMyPoint();loadRank();
 }
-
-// 渲染榜单HTML（原来的一点都没动）
-function renderRankHTML(data) {
-  if(!data || data.length === 0) return '<div class="empty">暂无玩家，快来当第一个！</div>';
-  let html = "";
-  data.forEach((item, i) => {
-    let cls = "";
-    if(i === 0) cls = "top1";
-    if(i === 1) cls = "top2";
-    if(i === 2) cls = "top3";
-    html += '<div class="rank-item ' + cls + '">'
-      + '<span><span class="rank-num">' + (i+1) + '</span>' + item.nickname + '</span>'
-      + '<span class="me-points">' + item.points + '</span>'
-      + "</div>";
+function renderRankHTML(data){
+  if(!data||data.length===0) return '<div class="empty">暂无玩家，快来当第一个！</div>';
+  let html="";
+  data.forEach((item,i)=>{
+    let cls="";
+    if(i===0)cls="top1";if(i===1)cls="top2";if(i===2)cls="top3";
+    html+='<div class="rank-item '+cls+'"><span><span class="rank-num">'+(i+1)+'</span>'+item.nickname+'</span><span class="me-points">'+item.points+'</span></div>';
   });
   return html;
 }
-
-// 加载排行榜（原来的一点都没动）
-async function loadRank() {
-  const box = document.getElementById("rankBox");
-
-  // 1. 先显示本地缓存的榜单（秒开）
-  const cached = localStorage.getItem("waiman_rank");
-  if(cached) {
-    box.innerHTML = renderRankHTML(JSON.parse(cached));
-  } else {
-    box.innerHTML = '<div class="empty">加载中...</div>';
-  }
-
-  try {
-    const res = await apiFetch(API_URL + "/users?select=nickname,points&order=points.desc&limit=50");
-    const data = await res.json();
-    // 2. 成功了，更新缓存和显示
-    localStorage.setItem("waiman_rank", JSON.stringify(data));
-    box.innerHTML = renderRankHTML(data);
-  } catch(e) {
-    // 3. 失败了，如果有缓存就保留缓存，提示网络慢
-    if(cached) {
-      box.innerHTML = renderRankHTML(JSON.parse(cached))
-        + '<div style="text-align:center;font-size:12px;color:#888;margin-top:8px;">网络较慢，显示的是上次缓存的榜单</div>';
-    } else {
-      box.innerHTML = '<div class="empty">网络较慢，点上方刷新重试</div>';
-    }
+async function loadRank(){
+  const box=document.getElementById("rankBox");
+  const cache=localStorage.getItem("waiman_rank");
+  if(cache) box.innerHTML=renderRankHTML(JSON.parse(cache));
+  else box.innerHTML='<div class="empty">加载中...</div>';
+  try{
+    const res=await apiFetch(API_URL+"/users?select=nickname,points&order=points.desc&limit=50");
+    const data=await res.json();
+    localStorage.setItem("waiman_rank",JSON.stringify(data));
+    box.innerHTML=renderRankHTML(data);
+  }catch(e){
+    if(cache){
+      box.innerHTML=renderRankHTML(JSON.parse(cache))+'<div style="text-align:center;font-size:12px;color:#888;margin-top:8px;">网络较慢，显示的是上次缓存的榜单</div>';
+    }else box.innerHTML='<div class="empty">网络较慢，点上方刷新重试</div>';
   }
 }
 
-// 页面加载
-window.onload = () => {
-  renderDramas();
+window.onload=()=>{
+  renderDramaList();
   loadRank();
-  if(userId) {
-    refreshMyPoint();
-  }
+  if(userId) refreshMyPoint();
 };
 </script>
 </body>
 </html>
+<!-- （注：内容由AI生成） -->
