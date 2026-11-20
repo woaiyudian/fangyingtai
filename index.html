@@ -106,7 +106,6 @@ h1{
   line-height:1.5;
 }
 
-/* ==========新增样式：总封面 + 小方块剧集网格 ========== */
 .drama-main-cover{
   width:100%;
   border-radius:10px;
@@ -224,6 +223,7 @@ button.sec{background:#3a3a48;color:#fff;}
 .rank-item.top2 .rank-num{background:#c0c0c0;color:#000;}
 .rank-item.top3 .rank-num{background:#cd7f32;color:#000;}
 .tip{font-size:13px;color:#999;margin:8px 0;line-height:1.5;}
+.cache-tip{font-size:12px;color:#ff9845;margin:4px 0;}
 #msg{
   padding:12px;
   border-radius:8px;
@@ -233,6 +233,7 @@ button.sec{background:#3a3a48;color:#fff;}
 }
 .msg-ok{background:#1b4b2c;color:#99ffaa;}
 .msg-err{background:#4b1b1b;color:#ffaaaa;}
+.msg-warn{background:#473b19;color:#ffdd88;}
 .empty{text-align:center;color:#666;padding:20px 0;font-size:14px;}
 .me-points{font-size:20px;color:#ffaa2b;font-weight:700;}
 
@@ -322,6 +323,7 @@ button.sec{background:#3a3a48;color:#fff;}
 <div class="card">
   <h2 style="font-size:16px;margin-bottom:12px;color:#ffbc49;font-weight:600;">排行榜</h2>
   <div id="rankBox"><div class="empty">加载中...</div></div>
+  <div id="rankCacheTip" class="cache-tip"></div>
   <button class="sec" onclick="loadRank()">刷新榜单</button>
 </div>
 
@@ -377,7 +379,7 @@ const DRAMAS = [
       {
         title: "第一集：系统激活",
         videoUrl: "https://id5uuto33o40lc.1yunpan.com/%E5%A4%96%E5%8D%96%E4%B9%8B%E5%AF%8C/%E8%A7%86%E9%A2%91/%E7%AC%AC%E4%B8%80%E9%9B%86%EF%BC%9A%E7%B3%BB%E7%BB%9F%E6%BF%80%E6%B4%BB.mp4",
-        cover:"https://id5uuto33o40lc.1yunpan.com/%E5%A4%96%E5%8D%96%E4%B9%8B%E5%AF%8C/%E5%B0%81%E9%9D%A2/%E5%A4%96%E5%8D%96%E4%B9%8B%E5%AF%8C-%E7%AC%AC%E4%B8%80%E9%9B%86.png"
+        cover:"https://p3-flow-image-sign.byteimg.com/tos-cn-i-a9rns2rl98/3100130090934048a00d4d2200433111~tplv-a9rns2rl98-image.image"
       }
     ]
   }
@@ -460,6 +462,7 @@ document.getElementById("videoModal").addEventListener("click", function(e){
   if(e.target===this) closeVideo();
 });
 
+// ==================== Supabase配置 + 增强网络层（超时、重试、缓存降级）====================
 const API_URL = "https://famruqybqslcslkckpyk.supabase.co/rest/v1";
 const API_KEY = "sb_publishable_iie6HBAS9jm48lD7zZ3Zug_CgXYXVLf";
 let userId = localStorage.getItem("waiman_uid") || null;
@@ -468,29 +471,42 @@ const headers = {
   "Authorization": "Bearer " + API_KEY,
   "Content-Type": "application/json"
 };
+//缓存key
+const CACHE_KEY_RANK = "supabase_rank_cache";
+const CACHE_KEY_USER = "supabase_myuser_cache";
+
+/**
+ * 增强fetch：8秒超时，最多2次重试
+ */
 async function apiFetch(url, options = {}, retryCount = 2) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(()=>controller.abort(),10000);
-  try{
-    const res = await fetch(url, {...options, headers, signal:controller.signal});
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(url, {
+      ...options,
+      headers: headers,
+      signal: controller.signal
+    });
     clearTimeout(timeoutId);
     return res;
-  }catch(e){
+  } catch (err) {
     clearTimeout(timeoutId);
-    if(retryCount>0){
-      await new Promise(r=>setTimeout(r,1000));
-      return apiFetch(url,options,retryCount-1);
+    if(retryCount > 0) {
+      await new Promise(r => setTimeout(r,1200));
+      return apiFetch(url, options, retryCount -1);
     }
-    throw e;
+    throw err;
   }
 }
-function showMsg(text,isOk){
+
+function showMsg(text, type){
   const box=document.getElementById("msg");
   box.innerText=text;
-  box.className=isOk?"msg-ok":"msg-err";
+  box.className = type === true ? "msg-ok" : (type === "warn" ? "msg-warn" : "msg-err");
   box.style.display="block";
-  setTimeout(()=>box.style.display="none",3000);
+  setTimeout(()=>box.style.display="none",4000);
 }
+
 async function testDb(){
   showMsg("正在测试连接...",true);
   try{
@@ -498,13 +514,18 @@ async function testDb(){
     if(res.ok){
       const d=await res.json();
       showMsg("数据库连接成功！当前有 "+d.length+" 条数据",true);
-    }else showMsg("连接失败，错误码："+res.status,false);
-  }catch(e){ showMsg("连接失败："+e.message+"（可能是网络问题，换手机流量试试）",false); }
+    }else {
+      showMsg("数据库返回错误，状态码："+res.status,false);
+    }
+  }catch(e){
+    showMsg("🔴网络访问Supabase超时/被拦截，海外网络不稳定。可以切换手机流量尝试。","warn");
+  }
 }
 
 const ADMIN_PASSWORD = "woaiyudian0325";
 let adminUserList = [];
 let editingUserId=null;
+
 function showAdminLogin(){
   const pwd=prompt("请输入管理员密码：");
   if(pwd===ADMIN_PASSWORD){
@@ -517,18 +538,22 @@ function logoutAdmin(){
   document.getElementById("editPanel").style.display="none";
   editingUserId=null;
 }
+
 async function loadAdminList(){
   try{
     const res=await apiFetch(API_URL+"/users?select=id,nickname,points&order=points.desc");
-    adminUserList=await res.json();renderAdminList();
-  }catch(e){ showMsg("加载用户列表失败",false); }
+    adminUserList=await res.json();
+    renderAdminList();
+  }catch(e){
+    showMsg("🔴网络异常，无法从数据库读取用户列表","warn");
+  }
 }
 function renderAdminList(){
   const kw=document.getElementById("searchInput").value.trim();
   let list=adminUserList;
   if(kw) list=list.filter(u=>u.nickname.includes(kw));
   const box=document.getElementById("adminUserList");
-  if(list.length===0){ box.innerHTML='<div class="empty">没有找到用户</div>';return; }
+  if(!list || list.length===0){ box.innerHTML='<div class="empty">没有找到用户</div>';return; }
   let html="";
   list.forEach(u=>{
     html+='<div class="rank-item" style="cursor:pointer;" onclick="editUser(\''+u.id+'\',\''+u.nickname+'\','+u.points+')">'+
@@ -550,15 +575,19 @@ async function savePoints(){
   if(!editingUserId)return;
   const ch=parseInt(document.getElementById("pointsInput").value);
   if(isNaN(ch)){ showMsg("请输入数字！",false);return; }
-  const r1=await apiFetch(API_URL+"/users?select=points&id=eq."+editingUserId);
-  const d1=await r1.json();
-  if(!d1||d1.length===0){ showMsg("用户不存在",false);return; }
-  const np=d1[0].points+ch;
-  const r2=await apiFetch(API_URL+"/users?id=eq."+editingUserId,{method:"PATCH",body:JSON.stringify({points:np})});
-  if(r2.ok){
-    showMsg("修改成功！"+(ch>=0?"加":"减")+Math.abs(ch)+"分",true);
-    closeEdit();loadAdminList();loadRank();refreshMyPoint();
-  }else showMsg("修改失败",false);
+  try{
+    const r1=await apiFetch(API_URL+"/users?select=points&id=eq."+editingUserId);
+    const d1=await r1.json();
+    if(!d1||d1.length===0){ showMsg("用户不存在",false);return; }
+    const np=d1[0].points+ch;
+    const r2=await apiFetch(API_URL+"/users?id=eq."+editingUserId,{method:"PATCH",body:JSON.stringify({points:np})});
+    if(r2.ok){
+      showMsg("修改成功！"+(ch>=0?"加":"减")+Math.abs(ch)+"分",true);
+      closeEdit();loadAdminList();loadRank();refreshMyPoint();
+    }else showMsg("修改失败",false);
+  }catch(e){
+    showMsg("🔴网络异常，无法提交修改到云端数据库！","warn");
+  }
 }
 
 async function applyPoints(){
@@ -568,7 +597,9 @@ async function applyPoints(){
     const res=await apiFetch(API_URL+"/point_requests",{method:"POST",body:JSON.stringify({user_id:userId,nickname:nick,points:60,reason:"填完问卷领积分",status:"pending"})});
     if(res.ok) showMsg("申请已提交！等待站长审核通过后到账",true);
     else showMsg("提交失败，请重试",false);
-  }catch(e){ showMsg("网络错误，提交失败",false); }
+  }catch(e){
+    showMsg("🔴网络异常，无法提交积分申请到云端！","warn");
+  }
 }
 async function loadPending(){
   try{
@@ -585,21 +616,29 @@ async function loadPending(){
       '<button class="sec" style="padding:6px 12px;font-size:13px;" onclick="rejectRequest(\''+item.id+'\')">拒绝</button></div>';
     });
     box.innerHTML=html;
-  }catch(e){ document.getElementById("pendingList").innerHTML='<div class="empty">加载失败</div>'; }
+  }catch(e){ document.getElementById("pendingList").innerHTML='<div class="empty">🔴网络异常，加载失败</div>'; }
 }
 async function approveRequest(reqId,uid,points){
-  await apiFetch(API_URL+"/point_requests?id=eq."+reqId,{method:"PATCH",body:JSON.stringify({status:"approved"})});
-  const r=await apiFetch(API_URL+"/users?select=points&id=eq."+uid);
-  const d=await r.json();
-  if(d&&d.length>0){
-    await apiFetch(API_URL+"/users?id=eq."+uid,{method:"PATCH",body:JSON.stringify({points:d[0].points+points})});
+  try{
+    await apiFetch(API_URL+"/point_requests?id=eq."+reqId,{method:"PATCH",body:JSON.stringify({status:"approved"})});
+    const r=await apiFetch(API_URL+"/users?select=points&id=eq."+uid);
+    const d=await r.json();
+    if(d&&d.length>0){
+      await apiFetch(API_URL+"/users?id=eq."+uid,{method:"PATCH",body:JSON.stringify({points:d[0].points+points})});
+    }
+    showMsg("已通过！给用户加了"+points+"分",true);
+    loadPending();loadAdminList();loadRank();
+  }catch(e){
+    showMsg("🔴网络异常，操作无法保存云端","warn");
   }
-  showMsg("已通过！给用户加了"+points+"分",true);
-  loadPending();loadAdminList();loadRank();
 }
 async function rejectRequest(reqId){
-  await apiFetch(API_URL+"/point_requests?id=eq."+reqId,{method:"PATCH",body:JSON.stringify({status:"rejected"})});
-  showMsg("已拒绝",true);loadPending();
+  try{
+    await apiFetch(API_URL+"/point_requests?id=eq."+reqId,{method:"PATCH",body:JSON.stringify({status:"rejected"})});
+    showMsg("已拒绝",true);loadPending();
+  }catch(e){
+    showMsg("🔴网络异常，操作无法保存云端","warn");
+  }
 }
 
 async function registerNick(){
@@ -623,52 +662,79 @@ async function registerNick(){
     if(!data2||data2.length===0){ showMsg("注册失败：返回数据为空",false);return; }
     userId=data2[0].id;localStorage.setItem("waiman_uid",userId);
     showMsg("注册成功！欢迎「"+nick+"」",true);refreshMyPoint();loadRank();
-  }catch(e){ showMsg("网络错误："+e.message+"（试试换手机流量）",false); }
+  }catch(e){
+    showMsg("🔴网络访问海外数据库失败，暂时无法新建账号！切换手机流量重试。","warn");
+  }
 }
+
 async function refreshMyPoint(){
   if(!userId) return;
-  const res=await apiFetch(API_URL+"/users?select=nickname,points,last_checkin&id=eq."+userId);
-  const data=await res.json();
-  if(!data||data.length===0){ showMsg("读取积分失败",false);return; }
-  const me=data[0];
-  document.getElementById("myInfo").innerHTML="昵称："+me.nickname+"<br/>"+'<span class="me-points">'+me.points+"</span> 积分";
-  document.getElementById("nickTopInput").value=me.nickname;
-  document.getElementById("topScoreText").innerText=me.points;
-  const today=new Date().toISOString().split('T')[0];
-  const tip=document.getElementById("checkinTip");
-  if(me.last_checkin===today){ tip.innerText="今天已经签到过啦，明天再来吧！";tip.style.color="#888"; }
-  else tip.innerText="";
+  //优先读缓存渲染，避免空白
+  let cacheUser = localStorage.getItem(CACHE_KEY_USER);
+  if(cacheUser){
+    const me=JSON.parse(cacheUser);
+    document.getElementById("myInfo").innerHTML="昵称："+me.nickname+"<br/>"+'<span class="me-points">'+me.points+"</span> 积分";
+    document.getElementById("nickTopInput").value=me.nickname;
+    document.getElementById("topScoreText").innerText=me.points;
+  }
+  try{
+    const res=await apiFetch(API_URL+"/users?select=nickname,points,last_checkin&id=eq."+userId);
+    const data=await res.json();
+    if(!data||data.length===0){ return; }
+    const me=data[0];
+    localStorage.setItem(CACHE_KEY_USER,JSON.stringify(me));
+    document.getElementById("myInfo").innerHTML="昵称："+me.nickname+"<br/>"+'<span class="me-points">'+me.points+"</span> 积分";
+    document.getElementById("nickTopInput").value=me.nickname;
+    document.getElementById("topScoreText").innerText=me.points;
+    const today=new Date().toISOString().split('T')[0];
+    const tip=document.getElementById("checkinTip");
+    if(me.last_checkin===today){ tip.innerText="今天已经签到过啦，明天再来吧！";tip.style.color="#888"; }
+    else tip.innerText="";
+  }catch(e){
+    //网络失败，已经上面缓存渲染完成，不弹窗打断用户
+  }
 }
+
 async function dailyCheckin(){
   if(!userId){ showMsg("请先入场登记昵称！",false);return; }
   const today=new Date().toISOString().split('T')[0];
-  const res=await apiFetch(API_URL+"/users?select=points,last_checkin&id=eq."+userId);
-  const data=await res.json();
-  if(!data||data.length===0){ showMsg("读取失败，请刷新重试",false);return; }
-  const user=data[0];
-  if(user.last_checkin===today){ showMsg("今天已经签到过了，明天再来吧！",false);return; }
-  const newPt=user.points+10;
-  const res2=await apiFetch(API_URL+"/users?id=eq."+userId,{method:"PATCH",body:JSON.stringify({points:newPt,last_checkin:today})});
-  if(res2.ok){ showMsg("签到成功！+10积分",true);refreshMyPoint();loadRank(); }
-  else showMsg("签到失败，请重试",false);
+  try{
+    const res=await apiFetch(API_URL+"/users?select=points,last_checkin&id=eq."+userId);
+    const data=await res.json();
+    if(!data||data.length===0){ showMsg("读取失败，请刷新重试",false);return; }
+    const user=data[0];
+    if(user.last_checkin===today){ showMsg("今天已经签到过了，明天再来吧！",false);return; }
+    const newPt=user.points+10;
+    const res2=await apiFetch(API_URL+"/users?id=eq."+userId,{method:"PATCH",body:JSON.stringify({points:newPt,last_checkin:today})});
+    if(res2.ok){ showMsg("签到成功！+10积分",true);refreshMyPoint();loadRank(); }
+    else showMsg("签到失败，请重试",false);
+  }catch(e){
+    showMsg("🔴网络异常，签到不能保存云端，请切换流量！","warn");
+  }
 }
+
 async function exchange(type){
   if(!userId){ showMsg("请先入场登记昵称！",false);return; }
   let cost,title;
   if(type==="urge"){cost=100;title="兑换催更";}
   else if(type==="predict"){cost=30;title="剧情预测";}
   else return;
-  const res=await apiFetch(API_URL+"/users?select=points&id=eq."+userId);
-  const data=await res.json();
-  if(!data||data.length===0){ showMsg("读取积分失败",false);return; }
-  const now=data[0].points;
-  if(now<cost){ showMsg("积分不足！还差"+(cost-now)+"分",false);return; }
-  const np=now-cost;
-  const res2=await apiFetch(API_URL+"/users?id=eq."+userId,{method:"PATCH",body:JSON.stringify({points:np})});
-  if(!res2.ok){ showMsg("兑换失败",false);return; }
-  await apiFetch(API_URL+"/activities",{method:"POST",body:JSON.stringify({user_id:userId,action:title,change:-cost})});
-  showMsg(title+"成功！",true);refreshMyPoint();loadRank();
+  try{
+    const res=await apiFetch(API_URL+"/users?select=points&id=eq."+userId);
+    const data=await res.json();
+    if(!data||data.length===0){ showMsg("读取积分失败",false);return; }
+    const now=data[0].points;
+    if(now<cost){ showMsg("积分不足！还差"+(cost-now)+"分",false);return; }
+    const np=now-cost;
+    const res2=await apiFetch(API_URL+"/users?id=eq."+userId,{method:"PATCH",body:JSON.stringify({points:np})});
+    if(!res2.ok){ showMsg("兑换失败",false);return; }
+    await apiFetch(API_URL+"/activities",{method:"POST",body:JSON.stringify({user_id:userId,action:title,change:-cost})});
+    showMsg(title+"成功！",true);refreshMyPoint();loadRank();
+  }catch(e){
+    showMsg("🔴网络异常，兑换无法提交云端！","warn");
+  }
 }
+
 function renderRankHTML(data){
   if(!data||data.length===0) return '<div class="empty">暂无玩家，快来当第一个！</div>';
   let html="";
@@ -679,20 +745,28 @@ function renderRankHTML(data){
   });
   return html;
 }
+
 async function loadRank(){
   const box=document.getElementById("rankBox");
-  const cache=localStorage.getItem("waiman_rank");
-  if(cache) box.innerHTML=renderRankHTML(JSON.parse(cache));
-  else box.innerHTML='<div class="empty">加载中...</div>';
+  const tipDom = document.getElementById("rankCacheTip");
+  //优先渲染缓存
+  const cacheRaw = localStorage.getItem(CACHE_KEY_RANK);
+  if(cacheRaw){
+    const cacheData = JSON.parse(cacheRaw);
+    box.innerHTML=renderRankHTML(cacheData);
+    tipDom.innerText="⚠️展示本地缓存排行榜，网络连通后刷新获得最新数据";
+  }else{
+    box.innerHTML='<div class="empty">加载中...</div>';
+    tipDom.innerText="";
+  }
   try{
     const res=await apiFetch(API_URL+"/users?select=nickname,points&order=points.desc&limit=50");
     const data=await res.json();
-    localStorage.setItem("waiman_rank",JSON.stringify(data));
+    localStorage.setItem(CACHE_KEY_RANK,JSON.stringify(data));
     box.innerHTML=renderRankHTML(data);
+    tipDom.innerText="";
   }catch(e){
-    if(cache){
-      box.innerHTML=renderRankHTML(JSON.parse(cache))+'<div style="text-align:center;font-size:12px;color:#888;margin-top:8px;">网络较慢，显示的是上次缓存的榜单</div>';
-    }else box.innerHTML='<div class="empty">网络较慢，点上方刷新重试</div>';
+    //网络异常，已经显示缓存
   }
 }
 
@@ -704,4 +778,3 @@ window.onload=()=>{
 </script>
 </body>
 </html>
-<!-- （注：内容由AI生成） -->
